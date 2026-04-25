@@ -6,13 +6,16 @@ export class ContentProcessor {
   THRESHOLD_YELLOW: number = 40;
   imageMap: Map<HTMLImageElement, number> = new Map();
   observer: MutationObserver;
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(displaySettings: DisplaySettings) {
     this.observer = new MutationObserver(() => {
-      this.processImages(displaySettings);
+      if (this.debounceTimer) clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => this.processImages(displaySettings), 200);
     });
 
     this.observer.observe(document.body, { childList: true, subtree: true });
+    this.processImages(displaySettings);
   }
 
   scoreToColor(score: number): string {
@@ -54,3 +57,5 @@ export class ContentProcessor {
     console.log('Processed', newImages.length, 'new images');
   }
 }
+
+new ContentProcessor({ hideContent: false, blurContent: true, highlightContent: false });
