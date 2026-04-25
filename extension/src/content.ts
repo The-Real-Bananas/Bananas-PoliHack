@@ -1,4 +1,5 @@
 import type { DetectionResult, DisplaySettings } from './types';
+import { DEFAULT_SETTINGS } from './types';
 import { scanImage } from './api';
 
 export class ContentProcessor {
@@ -14,10 +15,15 @@ export class ContentProcessor {
 
   imageMap: Map<HTMLImageElement, number> = new Map();
   observer: MutationObserver;
+  displaySettings: DisplaySettings;
 
-  constructor(displaySettings: DisplaySettings) {
+
+
+  constructor() {
+    this.displaySettings = DEFAULT_SETTINGS;
+
     this.observer = new MutationObserver(() => {
-      this.processImages(displaySettings);
+      this.processImages();
     });
 
     this.observer.observe(document.body, { childList: true, subtree: true });
@@ -57,10 +63,9 @@ export class ContentProcessor {
     this.findPostContainer(image).style.display = 'none';
   }
 
-  applyHighlight(image: HTMLImageElement, score: number) {
-    //const color = this.scoreToColor(score);
-    //image.style.outline = `4px solid ${color}`;
+  applyFlag(image: HTMLImageElement, score: number) {
     if (image.parentElement?.classList.contains('ai-detector-wrapper')) return;
+    if (!image.parentNode) return; // guard null parent
 
     const color = score >= this.THRESHOLD_RED ? '#ef4444' : '#f59e0b';
 
@@ -112,8 +117,8 @@ export class ContentProcessor {
     wrapper.appendChild(badge);
   }
 
-  applyDisplaySettings(image: HTMLImageElement, score: number, settings: DisplaySettings) {
-    switch (settings.displayMode) {
+  applyDisplaySettings(image: HTMLImageElement, score: number) {
+    switch (this.displaySettings.photoDisplayMode) {
       case 'blur':
         if (score >= this.THRESHOLD_RED) {
           this.applyBlur(image);
@@ -124,15 +129,15 @@ export class ContentProcessor {
           this.applyHide(image);
         }
         break;
-      case 'highlight':
+      case 'flag':
         if (score >= this.THRESHOLD_YELLOW) {
-          this.applyHighlight(image, score);
+          this.applyFlag(image, score);
         }
         break;
     }
   }
 
-  async processImages(settings: DisplaySettings) {
+  async processImages() {
     const images = Array.from(document.querySelectorAll('img'));
     const newImages = new Array<HTMLImageElement>();
 
@@ -146,16 +151,47 @@ export class ContentProcessor {
     results.forEach((result, image) => {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
-      this.applyDisplaySettings(image, result.score, settings);
+      this.applyDisplaySettings(image, result.score);
     });
 
     console.log('Processed', newImages.length, 'new images');
   }
+
+  processSignal(signal: any) {
+    console.log('Processing signal:', signal);
+
+    switch (signal.type) {
+      case 'SET_GLOBAL':
+        this.displaySettings.globalActive = signal.enabled;
+        if (!signal.enabled) { 
+          this.displaySettings.photoFilterActive = false;
+          this.displaySettings.propagandaActive = false;
+        }
+        break;
+
+      case 'SET_PHOTO_FILTER':
+        this.displaySettings.photoFilterActive = signal.enabled;
+        break;
+
+      case 'SET_PHOTO_FILTER_MODE':
+        this.displaySettings.photoDisplayMode = signal.mode;
+        break;
+
+      case 'SET_PROPAGANDA':
+        this.displaySettings.propagandaActive = signal.enabled;
+        break;
+
+      case 'SET_PROPAGANDA_MODE':
+        this.displaySettings.propagandaDisplayMode = signal.mode;
+        break;
+    }
+  }
 }
 
-const defaultSettings: DisplaySettings = {
-  displayMode: 'hide',
-};
+const processor = new ContentProcessor();
 
-const processor = new ContentProcessor(defaultSettings);
+chrome.runtime.onMessage.addListener((signal) => {
+  processor.processSignal(signal);
+});
+
 console.log('[AI Detector] Content script loaded', processor);

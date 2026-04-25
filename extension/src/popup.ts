@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const globalPower = document.getElementById('globalPower') as HTMLButtonElement;
   const statusText = document.getElementById('statusText') as HTMLSpanElement;
 
-  const aiPower = document.getElementById('aiPower') as HTMLButtonElement;
-  const aiToggleGroup = document.getElementById('aiToggleGroup') as HTMLDivElement;
+  const photoFilterPower = document.getElementById('photoFilterPower') as HTMLButtonElement;
+  const photoFilterGroup = document.getElementById('photoFilterGroup') as HTMLDivElement;
 
   const propagandaPower = document.getElementById('propagandaPower') as HTMLButtonElement;
   const propagandaGroup = document.getElementById('propagandaToggleGroup') as HTMLDivElement;
@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let globalActive = true;
   let aiActive = true;
   let propagandaActive = false;
+
+  async function sendToContent(payload: object) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab.id) chrome.tabs.sendMessage(tab.id, payload);
+  }
 
   function setGlobal(active: boolean) {
     globalActive = active;
@@ -25,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       statusText.textContent = 'Scanning continuously';
 
       // 1. Re-enable Section Power buttons
-      aiPower.removeAttribute('disabled');
+      photoFilterPower.removeAttribute('disabled');
       propagandaPower.removeAttribute('disabled');
 
       // 2. Restore previous states for the sections
@@ -41,23 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
       setPropaganda(false);
 
       // 2. Disable Section Power buttons so they can't be toggled while Global is OFF
-      aiPower.setAttribute('disabled', 'true');
+      photoFilterPower.setAttribute('disabled', 'true');
       propagandaPower.setAttribute('disabled', 'true');
     }
   }
 
   function setAi(active: boolean) {
     aiActive = active;
-    aiPower.setAttribute('data-active', String(active));
-    aiPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
+    photoFilterPower.setAttribute('data-active', String(active));
+    photoFilterPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
 
     // Lock/Unlock the AI buttons based on BOTH section and global state
     if (active && globalActive) {
-      aiToggleGroup.classList.remove('disabled');
-      aiToggleGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
+      photoFilterGroup.classList.remove('disabled');
+      photoFilterGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
     } else {
-      aiToggleGroup.classList.add('disabled');
-      aiToggleGroup.querySelectorAll('button.toggle').forEach(btn => {
+      photoFilterGroup.classList.add('disabled');
+      photoFilterGroup.querySelectorAll('button.toggle').forEach(btn => {
         btn.setAttribute('disabled', 'true');
       });
     }
@@ -88,23 +93,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Event Listeners
   globalPower.addEventListener('click', () => {
     setGlobal(!globalActive);
+    sendToContent({ type: 'SET_GLOBAL', enabled: globalActive });
   });
 
-  aiPower.addEventListener('click', () => {
+  photoFilterPower.addEventListener('click', () => {
     if (!globalActive) return; // Failsafe: can't toggle if global is off
     setAi(!aiActive);
+    sendToContent({ type: 'SET_PHOTO_FILTER', enabled: aiActive });
   });
 
-  aiToggleGroup.addEventListener('click', (e: Event) => {
+  photoFilterGroup.addEventListener('click', (e: Event) => {
     const btn = (e.target as HTMLElement).closest('button.toggle') as HTMLButtonElement | null;
     if (!btn || btn.disabled) return;
 
-    activateToggle(aiToggleGroup, btn);
+    activateToggle(photoFilterGroup, btn);
+    sendToContent({ type: 'SET_PHOTO_FILTER_MODE', mode: btn.dataset.mode }); // 'flag' | 'blur' | 'hide'
   });
 
   propagandaPower.addEventListener('click', () => {
     if (!globalActive) return; // Failsafe: can't toggle if global is off
     setPropaganda(!propagandaActive);
+    sendToContent({ type: 'SET_PROPAGANDA', enabled: propagandaActive });
   });
 
   propagandaGroup.addEventListener('click', (e: Event) => {
@@ -112,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn || btn.disabled) return;
 
     activateToggle(propagandaGroup, btn);
+    sendToContent({ type: 'SET_PROPAGANDA_MODE', mode: btn.dataset.mode });
   });
 
 });
