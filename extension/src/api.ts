@@ -1,28 +1,45 @@
 import type { DetectionResult } from './types'
 
-export async function scanImage(images: HTMLImageElement[]): Promise<Map<HTMLImageElement, DetectionResult>> {
+function getRealImageUrl(image: HTMLImageElement): string | null {
+    // try these attributes in order - real URL is often hidden here
+    const src = 
+        image.getAttribute('data-src') ||        // lazy loading
+        image.getAttribute('data-original') ||   // common lazy load lib
+        image.getAttribute('data-lazy-src') ||   // wordpress lazy load
+        image.getAttribute('data-url') ||
+        image.src;
+
+    if (!src) return null;
+    if (src.startsWith('data:')) return null;    // still base64, skip
+    if (src.startsWith('blob:')) return null;    // blob, skip
+    if (!src.startsWith('http')) return null;    // not a real URL, skip
+
+    return src;
+}
+
+export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLImageElement, DetectionResult>> {
     const results = new Map<HTMLImageElement, DetectionResult>();
 
     for (const image of images) {
-        if (!image.src) {
-            continue;
-        }
+        const realUrl = getRealImageUrl(image);
+        if (!realUrl) continue;
 
-        try{
-            const res = await fetch('http://localhost:8000/detect/image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: image.src })
-            })
-
-        const result: DetectionResult = await res.json()
-        results.set(image, result)
-
-        //results.set(image, { score: 99, source: 'mock' });
-        } catch(e) {
-            console.warn('Failed to scan image:', image.src, e)
-        }
-
+        await Promise.race([
+            new Promise<void>((resolve) => {
+                chrome.runtime.sendMessage(
+                    { type: 'DETECT_IMAGE', url: realUrl },
+                    (response) => {
+                        if (response?.success) {
+                            results.set(image, response.data);
+                        } else {
+                            console.warn('[AI Detector] Detection failed for:', realUrl, response?.error); 
+                        }
+                        resolve();
+                    }
+                );
+            }),
+            new Promise<void>((resolve) => setTimeout(resolve, 5000)) // 5s timeout
+        ]);
     }
 
   return results;
