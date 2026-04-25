@@ -29,9 +29,13 @@ export class ContentProcessor {
 
   constructor() {
     this.displaySettings = DEFAULT_SETTINGS;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     this.observer = new MutationObserver(() => {
-      this.processImages();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        this.processImages();
+      }, 1000);
     });
 
     this.observer.observe(document.body, { childList: true, subtree: true });
@@ -215,12 +219,21 @@ export class ContentProcessor {
   }
 }
 
-(async () => {
-  const processor = await ContentProcessor.create();
+const SINGLETON_KEY = '__aiDetectorLoaded__';
 
-  chrome.runtime.onMessage.addListener((signal) => {
-    processor.processSignal(signal);
-  });
+if (!(window as any)[SINGLETON_KEY]) {
+    (window as any)[SINGLETON_KEY] = true;
 
-  console.log('[AI Detector] Content script loaded', processor);
-})();
+    (async () => {
+        const processor = await ContentProcessor.create();
+
+        chrome.runtime.onMessage.addListener((signal) => {
+            processor.processSignal(signal);
+        });
+
+        console.log('[AI Detector] Content script loaded', processor);
+    })();
+
+} else {
+    console.log('[AI Detector] Already loaded, skipping');
+}

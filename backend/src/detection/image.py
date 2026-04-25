@@ -28,6 +28,7 @@ def parse_sightengine_response(data: dict) -> int:
 
 
 async def detect_image_url(url: str) -> dict:
+    print(f"Detecting image URL: {url}")
     return { "score": random.randint(0, 100), "source": "sightengine" }
     validate_url(url)
 
