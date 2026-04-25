@@ -1,20 +1,34 @@
 import os
 import httpx
+from dotenv import load_dotenv
 from fastapi import HTTPException
+
+load_dotenv()
 
 HIVE_API_KEY = os.getenv("HIVE_API_KEY")
 HIVE_URL = "https://api.thehive.ai/api/v2/task/sync"
 
 
-def _score_to_label(score: int) -> str:
-    if score >= 70:
-        return "ai"
-    elif score >= 40:
-        return "mixed"
+class ImageValidationError(Exception):
+    pass
+
+
+def validate_url(url: str) -> None:
+    if not url or not url.strip():
+        raise ImageValidationError("URL is empty")
+    if not url.startswith("http"):
+        raise ImageValidationError("Invalid URL - must start with http")
+    if url.startswith("data:"):
+        raise ImageValidationError("Inline data URIs are not supported")
+
+
+def score_to_label(score: int) -> str:
+    if score > 70: return "ai"
+    if score > 40: return "mixed"
     return "human"
 
 
-def _parse_hive_response(data: dict) -> int:
+def parse_hive_response(data: dict) -> int:
     try:
         classes = data["status"][0]["response"]["output"][0]["classes"]
         for cls in classes:
@@ -26,50 +40,28 @@ def _parse_hive_response(data: dict) -> int:
 
 
 async def detect_image_url(url: str) -> dict:
+    validate_url(url)
+
     if not HIVE_API_KEY:
-        raise HTTPException(status_code=500, detail="HIVE_API_KEY not set")
+        raise ValueError("HIVE_API_KEY not found in .env")
 
-    #empty or obviously invalid URL
-    if not url or not url.startswith("http"):
-        raise HTTPException(status_code=400, detail="Invalid image URL")
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            HIVE_URL,
+            headers={
+                "Authorization": f"Token {HIVE_API_KEY}",
+                "accept": "application/json",
+            },
+            data={"url": url},
+            timeout=20
+        )
+        res.raise_for_status()
+        data = res.json()
 
-    #data URIs (base64 inline images) - Hive can't handle these
-    if url.startswith("data:"):
+        score = parse_hive_response(data)
+
         return {
-            "score": -1,
-            "label": "unknown",
-            "source": "hive",
-            "reason": "inline data URI not supported"
+            "score": score,
+            "label": score_to_label(score),
+            "source": "hive"
         }
-
-    headers = {
-        "Authorization": f"Token {HIVE_API_KEY}",
-        "accept": "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        try:
-            response = await client.post(HIVE_URL, headers=headers, data={"url": url})
-            response.raise_for_status()
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Hive API timed out")
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 401:
-                raise HTTPException(status_code=500, detail="Invalid Hive API key")
-            if e.response.status_code == 422:
-                # Hive couldn't fetch/process the image (private, broken, wrong format)
-                return {
-                    "score": -1,
-                    "label": "unknown",
-                    "source": "hive",
-                    "reason": "image could not be processed"
-                }
-            raise HTTPException(status_code=502, detail=f"Hive API error: {e.response.status_code}")
-
-    score = _parse_hive_response(response.json())
-
-    return {
-        "score": score,
-        "label": _score_to_label(score),
-        "source": "hive",
-    }
