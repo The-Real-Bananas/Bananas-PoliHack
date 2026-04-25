@@ -9,7 +9,7 @@
     "service_worker": "dist/background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "dist/popup.html"
   },
   "content_scripts": [{
     "matches": ["<all_urls>"],
