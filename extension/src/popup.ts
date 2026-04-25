@@ -15,11 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let displaySettings: DisplaySettings = DEFAULT_SETTINGS;
 
-  chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
-  
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'SENT_SETTINGS') {
-      displaySettings = message.settings;
+  chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (response) => {
+    if (response?.settings) {
+      displaySettings = response.settings;
       updateUI();
     }
   });
