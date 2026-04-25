@@ -4,6 +4,8 @@ export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLIm
     const results = new Map<HTMLImageElement, DetectionResult>();
 
     for (const image of images) {
+
+        if (!image.src || image.src.startsWith('data:')) continue;
         if (!image.src) {
             continue;
         }
