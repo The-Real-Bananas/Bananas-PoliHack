@@ -1,14 +1,6 @@
 import type { DetectionResult, DisplaySettings } from './types';
 import { scanImage } from './api';
 
-const SITE_SELECTORS: Record<string, string> = {
-  'twitter.com':    'article[data-testid="tweet"]',
-  'x.com':          'article[data-testid="tweet"]',
-  'www.reddit.com': 'shreddit-post',
-  'www.linkedin.com': '.feed-shared-update-v2',
-  'www.facebook.com': '[role="article"]',
-};
-
 export class ContentProcessor {
   THRESHOLD_RED: number = 80;
   THRESHOLD_YELLOW: number = 40;
@@ -46,7 +38,7 @@ export class ContentProcessor {
   findPostContainer(image: HTMLImageElement): HTMLElement {
     console.log('Hiding image:', image.src);
 
-    const siteSelector = SITE_SELECTORS[window.location.hostname];
+    const siteSelector = this.SITE_SELECTORS[window.location.hostname];
 
     if (siteSelector) {
       const post = image.closest(siteSelector) as HTMLElement | null;
@@ -54,6 +46,7 @@ export class ContentProcessor {
     }
 
     const generic = image.closest('article, [role="article"], .post, .card') as HTMLElement | null;
+    alert(generic?.outerHTML);
     return generic ?? image;
   }
 
