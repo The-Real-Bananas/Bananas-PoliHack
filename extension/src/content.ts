@@ -47,6 +47,7 @@ export class ContentProcessor {
 
     const results = await scanImage(newImages);
     results.forEach((result, image) => {
+      console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
       this.applyBlur(image);
     });
@@ -54,3 +55,13 @@ export class ContentProcessor {
     console.log('Processed', newImages.length, 'new images');
   }
 }
+
+// Self-initialize so the content script actually runs when injected
+const defaultSettings: DisplaySettings = {
+  hideContent: false,
+  blurContent: true,
+  highlightContent: false,
+};
+
+const processor = new ContentProcessor(defaultSettings);
+console.log('[AI Detector] Content script loaded', processor);
