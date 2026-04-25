@@ -1,10 +1,14 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from backend.src.detection.image import detect_image_url
-from backend.src.detection.text import detect_text_content
-from backend.src.cache.cache import get_cached, set_cached
+from src.detection.image import detect_image_url
+from src.detection.text import detect_text_content
+from src.cache.cache import get_cached, set_cached
+
 
 
 app = FastAPI()
