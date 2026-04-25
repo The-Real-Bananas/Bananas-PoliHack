@@ -4,28 +4,20 @@ export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLIm
     const results = new Map<HTMLImageElement, DetectionResult>();
 
     for (const image of images) {
-
         if (!image.src || image.src.startsWith('data:')) continue;
-        if (!image.src) {
-            continue;
-        }
 
-        try{
-            const res = await fetch('http://localhost:8000/detect/image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: image.src })
-            })
-
-        const result: DetectionResult = await res.json()
-        results.set(image, result)
-
-
-        } catch(e) {
-            console.warn('Failed to scan image:', image.src, e)
-        }
-
+        await new Promise<void>((resolve) => {
+            chrome.runtime.sendMessage(
+                { type: 'DETECT_IMAGE', url: image.src },
+                (response) => {
+                    if (response?.success) {
+                        results.set(image, response.data);
+                    }
+                    resolve();
+                }
+            );
+        });
     }
 
-  return results;
+    return results;
 }
