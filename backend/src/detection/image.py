@@ -15,12 +15,13 @@ class ImageValidationError(Exception):
 
 
 def validate_url(url: str) -> None:
-    if not url or not url.strip():
-        raise ImageValidationError("URL is empty")
-    if not url.startswith("http"):
-        raise ImageValidationError("Invalid URL - must start with http")
-    if url.startswith("data:"):
-        raise ImageValidationError("Inline data URIs are not supported")
+    # if not url or not url.strip():
+    #     raise ImageValidationError("URL is empty")
+    # if not url.startswith("http"):
+    #     raise ImageValidationError("Invalid URL - must start with http")
+    # if url.startswith("data:"):
+    #     raise ImageValidationError("Inline data URIs are not supported")
+    pass
 
 def parse_sightengine_response(data: dict) -> int:
     try:

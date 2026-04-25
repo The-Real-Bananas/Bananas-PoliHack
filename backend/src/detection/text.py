@@ -5,7 +5,6 @@ from fastapi import HTTPException
 
 load_dotenv()
 
-
 SAPLING_KEY = os.getenv("SAPLING_KEY")
 SAPLING_URL = os.getenv("SAPLING_URL")
 
