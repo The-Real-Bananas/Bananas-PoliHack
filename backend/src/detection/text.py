@@ -3,10 +3,8 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
-load_dotenv()
-
 SAPLING_KEY = os.getenv("SAPLING_KEY")
-SAPLING_URL = os.getenv("SAPLING_URL")
+SAPLING_URL = "https://api.sapling.ai/api/v1/aidetect"
 
 MIN_WORDS = 20
 MIN_CHARS = 100

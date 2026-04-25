@@ -2,6 +2,7 @@ import sys, os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,7 @@ from src.detection.image import detect_image_url
 from src.detection.text import TextValidationError, UnexpectedResponse, detect_text_content
 from src.cache.cache import get_cached, set_cached
 
-
+load_dotenv()
 
 app = FastAPI()
 
@@ -19,7 +20,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    allow_credentials=False
 )
 
 class ImageRequest(BaseModel):

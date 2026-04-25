@@ -3,24 +3,20 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
-load_dotenv()
-
-SIGHTENGINE_USER = os.getenv("SIGHTENGINE_USER")
-SIGHTENGINE_SECRET = os.getenv("SIGHTENGINE_SECRET")
-SIGHTENGINE_URL = os.getenv("SIGHTENGINE_URL")
+SIGHTENGINE_URL = "https://api.sightengine.com/1.0/check.json"
 
 
 class ImageValidationError(Exception):
     pass
 
 
-def validate_url(url: str) -> None:
-    # if not url or not url.strip():
-    #     raise ImageValidationError("URL is empty")
-    # if not url.startswith("http"):
-    #     raise ImageValidationError("Invalid URL - must start with http")
-    # if url.startswith("data:"):
-    #     raise ImageValidationError("Inline data URIs are not supported")
+def validate_url(url: str):
+    if not url or not url.strip():
+        raise ImageValidationError("URL is empty")
+    if not url.startswith("http"):
+        raise ImageValidationError("Invalid URL - must start with http")
+    if url.startswith("data:"):
+        raise ImageValidationError("Inline data URIs are not supported")
     pass
 
 def parse_sightengine_response(data: dict) -> int:
@@ -32,6 +28,9 @@ def parse_sightengine_response(data: dict) -> int:
 
 async def detect_image_url(url: str) -> dict:
     validate_url(url)
+
+    SIGHTENGINE_USER = os.getenv("SIGHTENGINE_USER")
+    SIGHTENGINE_SECRET = os.getenv("SIGHTENGINE_SECRET")
 
     if not SIGHTENGINE_USER or not SIGHTENGINE_SECRET:
         raise ValueError("SIGHTENGINE_USER or SIGHTENGINE_SECRET not found in .env")
@@ -45,7 +44,6 @@ async def detect_image_url(url: str) -> dict:
                 "api_user": SIGHTENGINE_USER,
                 "api_secret": SIGHTENGINE_SECRET
             },
-            data={"url": url},
             timeout=20
         )
 
