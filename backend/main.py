@@ -28,9 +28,17 @@ class ImageRequest(BaseModel):
 class TextRequest(BaseModel):
     text: str
 
-@app.exception_handler(TextValidationError, UnexpectedResponse)
-async def validation_error_handler(request: Request, exc: TextValidationError):
+@app.exception_handler(TextValidationError)
+async def text_validation_error_handler(request: Request, exc: TextValidationError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+@app.exception_handler(UnexpectedResponse)
+async def unexpected_response_handler(request: Request, exc: UnexpectedResponse):
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+@app.exception_handler(Exception)
+async def generic_error_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 @app.post("/detect/image")
 async def detect_image(req: ImageRequest):
