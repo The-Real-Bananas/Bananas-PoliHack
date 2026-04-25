@@ -39,10 +39,6 @@ sentiment_classifier = hf_pipeline(
     model="cardiffnlp/twitter-roberta-base-sentiment-latest"
 )
 
-hate_classifier = hf_pipeline(
-    "text-classification",
-    model="cardiffnlp/twitter-roberta-base-hate"
-)
 
 # ==========================================
 # 3. HELPER FUNCTIONS
@@ -68,18 +64,6 @@ async def detect_misinfo(text: str) -> dict:
             "reason": "Text too short to analyze",
             "source": "validator"
         }
-
-    # PRE-CHECK 2 — hate speech (runs before intent, catches short aggressive text)
-    hate = hate_classifier(text[:512])[0]
-    if hate["label"].upper() == "HATE" and hate["score"] > 0.55:
-        return {
-            "flagged": True,
-            "label": "hate-speech",
-            "score": int(hate["score"] * 100),
-            "skipped": False,
-            "source": "twitter-roberta-hate"
-        }
-
     # LAYER 1 — intent classification
     intent = intent_classifier(text, candidate_labels=INTENT_LABELS)
     top_label = intent["labels"][0]
@@ -126,7 +110,7 @@ async def detect_misinfo(text: str) -> dict:
             "source": "keyword-detector"
         }
 
-    # LAYER 4 — propaganda detection
+    # LAYER 4 — propaganda model
     result = propaganda_detector(text[:512])[0]
     is_propaganda = result["label"] == "PROPAGANDA"
     confidence = int(result["score"] * 100)
