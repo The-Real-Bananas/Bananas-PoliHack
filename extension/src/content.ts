@@ -53,11 +53,37 @@ export class ContentProcessor {
       background:${color};color:white;
       font-size:14px;font-weight:bold;
       display:flex;align-items:center;justify-content:center;
-      z-index:9999;pointer-events:none;
+      z-index:9999;cursor:pointer;
       box-shadow:0 1px 4px rgba(0,0,0,0.4);
     `;
     badge.textContent = '!';
-    badge.title = `AI score: ${score}%`;
+
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+      position:fixed;
+      background:${color};color:white;
+      padding:6px 10px;border-radius:6px;
+      font-size:12px;font-family:sans-serif;line-height:1.4;
+      white-space:nowrap;z-index:99999;
+      pointer-events:none;opacity:0;
+      transition:opacity 0.15s ease;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    `;
+    tooltip.innerHTML = `
+      <div style="font-weight:bold;">This might be AI-generated</div>
+      <div>Confidence: ${score}%</div>
+    `;
+    document.body.appendChild(tooltip);
+
+    badge.addEventListener('mouseenter', () => {
+      const rect = badge.getBoundingClientRect();
+      tooltip.style.top = `${rect.top}px`;
+      tooltip.style.left = `${rect.left - tooltip.offsetWidth - 8}px`;
+      tooltip.style.opacity = '1';
+    });
+    badge.addEventListener('mouseleave', () => {
+      tooltip.style.opacity = '0';
+    });
 
     image.parentNode?.insertBefore(wrapper, image);
     wrapper.appendChild(image);
