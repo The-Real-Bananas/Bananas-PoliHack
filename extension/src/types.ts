@@ -1,9 +1,9 @@
 export type Label = 'green' | 'yellow' | 'red';
 
+export type DisplayMode = 'blur' | 'hide' | 'highlight';
+
 export interface DisplaySettings {
-  hideContent: boolean,
-  blurContent: boolean,
-  highlightContent: boolean,
+  displayMode: DisplayMode;
 }
 
 export interface DetectionResult {

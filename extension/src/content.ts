@@ -31,11 +31,60 @@ export class ContentProcessor {
     element.style.filter = 'blur(8px)';
   }
 
-  applyDisplaySettings(_image: HTMLImageElement, _result: DetectionResult, _settings: DisplaySettings) {
-
+  applyHide(image: HTMLImageElement) {
+    image.remove();
   }
 
-  async processImages(_settings: DisplaySettings) {
+  applyHighlight(image: HTMLImageElement, score: number) {
+    //const color = this.scoreToColor(score);
+    //image.style.outline = `4px solid ${color}`;
+    if (image.parentElement?.classList.contains('ai-detector-wrapper')) return;
+
+    const color = score >= this.THRESHOLD_RED ? '#ef4444' : '#f59e0b';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ai-detector-wrapper';
+    wrapper.style.cssText = 'position:relative;display:inline-block;';
+
+    const badge = document.createElement('div');
+    badge.style.cssText = `
+      position:absolute;top:6px;right:6px;
+      width:22px;height:22px;border-radius:50%;
+      background:${color};color:white;
+      font-size:14px;font-weight:bold;
+      display:flex;align-items:center;justify-content:center;
+      z-index:9999;pointer-events:none;
+      box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    `;
+    badge.textContent = '!';
+    badge.title = `AI score: ${score}%`;
+
+    image.parentNode?.insertBefore(wrapper, image);
+    wrapper.appendChild(image);
+    wrapper.appendChild(badge);
+  }
+
+  applyDisplaySettings(image: HTMLImageElement, score: number, settings: DisplaySettings) {
+    switch (settings.displayMode) {
+      case 'blur':
+        if (score >= this.THRESHOLD_RED) {
+          this.applyBlur(image);
+        }
+        break;
+      case 'hide':
+        if (score >= this.THRESHOLD_RED) {
+          this.applyHide(image);
+        }
+        break;
+      case 'highlight':
+        if (score >= this.THRESHOLD_YELLOW) {
+          this.applyHighlight(image, score);
+        }
+        break;
+    }
+  }
+
+  async processImages(settings: DisplaySettings) {
     const images = Array.from(document.querySelectorAll('img'));
     const newImages = new Array<HTMLImageElement>();
 
@@ -49,18 +98,15 @@ export class ContentProcessor {
     results.forEach((result, image) => {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
-      this.applyBlur(image);
+      this.applyDisplaySettings(image, result.score, settings);
     });
 
     console.log('Processed', newImages.length, 'new images');
   }
 }
 
-// Self-initialize so the content script actually runs when injected
 const defaultSettings: DisplaySettings = {
-  hideContent: false,
-  blurContent: true,
-  highlightContent: false,
+  displayMode: 'highlight',
 };
 
 const processor = new ContentProcessor(defaultSettings);
