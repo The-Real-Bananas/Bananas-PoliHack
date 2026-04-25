@@ -46,5 +46,6 @@ export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLIm
         );
     });
 
+
     return results;
 }
