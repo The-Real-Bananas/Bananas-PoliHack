@@ -1,6 +1,6 @@
 import type { DetectionResult, DisplaySettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
-import { scanImages } from './api';
+import { scanImages, scanTexts } from './api';
 
 export class ContentProcessor {
   THRESHOLD_RED: number = 80;
@@ -14,6 +14,7 @@ export class ContentProcessor {
   };
 
   imageMap: Map<HTMLImageElement, number> = new Map();
+  textMap: Map<HTMLElement, number> = new Map();
   observer: MutationObserver;
   displaySettings: DisplaySettings;
 
@@ -129,6 +130,34 @@ export class ContentProcessor {
     wrapper.appendChild(badge);
   }
 
+  textHide(element: HTMLElement) {
+    element.style.display = 'none';
+  }
+
+  textFlag(element: HTMLElement, score: number) {
+    // this is actualy just a highlight, not a flag, but whatever
+    const color = this.scoreToColor(score);
+    element.style.backgroundColor = color;
+    element.style.color = 'white';
+    element.style.padding = '2px 4px';
+    element.style.borderRadius = '4px';
+  }
+
+  applyTextDisplaySettings(element: HTMLElement, score: number) {
+    switch (this.displaySettings.textDisplayMode) {
+      case 'hide':
+        if (score >= this.THRESHOLD_RED) {
+          this.textHide(element);
+        }
+        break;
+      case 'flag':
+        if (score >= this.THRESHOLD_YELLOW) {
+          this.textFlag(element, score);
+        }
+        break;
+    }
+  }
+
   applyDisplaySettings(image: HTMLImageElement, score: number) {
     switch (this.displaySettings.photoDisplayMode) {
       case 'blur':
@@ -156,6 +185,13 @@ export class ContentProcessor {
     wrapper.replaceWith(image);
   }
 
+  resetTextDisplaySettings(element: HTMLElement) {
+    element.style.backgroundColor = '';
+    element.style.color = '';
+    element.style.padding = '';
+    element.style.borderRadius = '';
+  }
+
   async processImages() {
     const images = Array.from(document.querySelectorAll('img'));
     const newImages = new Array<HTMLImageElement>();
@@ -176,11 +212,38 @@ export class ContentProcessor {
     console.log('Processed', newImages.length, 'new images');
   }
 
+  async processText() {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, span, div'));
+    const newElements = new Array<HTMLElement>();
+
+    for (const el of elements) {
+      if (!this.textMap.has(el)) {
+        newElements.push(el);
+      }
+    }
+
+    const results = await scanTexts(newElements);
+    results.forEach((result, el) => {
+      console.log('Scanning text:', el.innerText);
+      this.textMap.set(el, result.score);
+      this.applyTextDisplaySettings(el, result.score);
+    });
+  }
+
   reprocessImages() {
     this.imageMap.forEach((score, image) => {
       this.resetDisplaySettings(image);
       if (this.displaySettings.photoFilterActive && this.displaySettings.globalActive) {
         this.applyDisplaySettings(image, score);
+      }
+    });
+  }
+
+  reprocessText() {
+    this.textMap.forEach((score, el) => {
+      this.resetTextDisplaySettings(el);
+      if (this.displaySettings.textFilterActive && this.displaySettings.globalActive) {
+        this.applyTextDisplaySettings(el, score);
       }
     });
   }
@@ -194,6 +257,7 @@ export class ContentProcessor {
         if (!signal.enabled) { 
           this.displaySettings.photoFilterActive = false;
           this.displaySettings.propagandaActive = false;
+          this.displaySettings.textFilterActive = false;
         }
         break;
 
@@ -203,6 +267,14 @@ export class ContentProcessor {
 
       case 'SET_PHOTO_FILTER_MODE':
         this.displaySettings.photoDisplayMode = signal.mode;
+        break;
+
+      case 'SET_TEXT_FILTER':
+        this.displaySettings.textFilterActive = signal.enabled;
+        break;
+
+      case 'SET_TEXT_FILTER_MODE':
+        this.displaySettings.textDisplayMode = signal.mode;
         break;
 
       case 'SET_PROPAGANDA':
@@ -215,6 +287,7 @@ export class ContentProcessor {
     }
 
     this.reprocessImages();
+    this.reprocessText();
     chrome.storage.local.set({ displaySettings: this.displaySettings });
   }
 }

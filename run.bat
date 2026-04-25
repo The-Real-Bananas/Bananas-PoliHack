@@ -1,6 +1,5 @@
 cd extension
-npm run build
-npm run start
+call npm run build
 cd ..
 
-& uvicorn backend.main:app --reload --port 8000
+uvicorn backend.main:app --reload --port 8000

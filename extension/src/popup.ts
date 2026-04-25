@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const photoFilterPower = document.getElementById('photoFilterPower') as HTMLButtonElement;
   const photoFilterGroup = document.getElementById('photoFilterGroup') as HTMLDivElement;
 
+  const textFilterPower = document.getElementById('textFilterPower') as HTMLButtonElement;
+  const textFilterGroup = document.getElementById('textFilterGroup') as HTMLDivElement;
+
   const propagandaPower = document.getElementById('propagandaPower') as HTMLButtonElement;
   const propagandaGroup = document.getElementById('propagandaToggleGroup') as HTMLDivElement;
 
@@ -18,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (response) => {
     if (response?.settings) {
       displaySettings = response.settings;
+      displaySettings.textDisplayMode = 'flag';
       updateUI();
     }
   });
@@ -38,10 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 1. Re-enable Section Power buttons
       photoFilterPower.removeAttribute('disabled');
+      textFilterPower.removeAttribute('disabled');
       propagandaPower.removeAttribute('disabled');
 
       // 2. Restore previous states for the sections
       setPhotoFilter(displaySettings.photoFilterActive);
+      setTextFilter(displaySettings.textFilterActive);
       setPropaganda(displaySettings.propagandaActive);
 
     } else {
@@ -50,11 +56,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 1. Automatically change sections to OFF (this locks their grids)
       setPhotoFilter(false);
+      setTextFilter(false);
       setPropaganda(false);
 
       // 2. Disable Section Power buttons so they can't be toggled while Global is OFF
       photoFilterPower.setAttribute('disabled', 'true');
+      textFilterPower.setAttribute('disabled', 'true');
       propagandaPower.setAttribute('disabled', 'true');
+    }
+  }
+
+  function setTextFilter(active: boolean) {
+    displaySettings.textFilterActive = active;
+    textFilterPower.setAttribute('data-active', String(active));
+    textFilterPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
+    
+    // Lock/Unlock the Text buttons based on BOTH section and global state
+    if (active && displaySettings.globalActive) {
+      textFilterGroup.classList.remove('disabled');
+      textFilterGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
+    } else {
+      textFilterGroup.classList.add('disabled');
+      textFilterGroup.querySelectorAll('button.toggle').forEach(btn => {
+        btn.setAttribute('disabled', 'true');
+      });
     }
   }
 
@@ -100,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUI() {
     setGlobal(displaySettings.globalActive);
     setPhotoFilter(displaySettings.photoFilterActive);
+    setTextFilter(displaySettings.textFilterActive);
     setPropaganda(displaySettings.propagandaActive);
     
     switch (displaySettings.photoDisplayMode) {
@@ -120,6 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'hide':
         activateToggle(propagandaGroup, document.getElementById('propagandaHideButton') as HTMLButtonElement);
+        break;
+    }
+    
+    switch (displaySettings.textDisplayMode) {
+      case 'flag':
+        activateToggle(textFilterGroup, document.getElementById('textFilterFlagButton') as HTMLButtonElement);
+        break;
+      case 'hide':
+        activateToggle(textFilterGroup, document.getElementById('textFilterHideButton') as HTMLButtonElement);
         break;
     }
   }
@@ -158,4 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
     sendToContent({ type: 'SET_PROPAGANDA_MODE', mode: btn.dataset.mode });
   });
 
+  textFilterPower.addEventListener('click', () => {
+    if (!displaySettings.globalActive) return;
+    setTextFilter(!displaySettings.textFilterActive);
+    sendToContent({ type: 'SET_TEXT_FILTER', enabled: displaySettings.textFilterActive });
+  });
+
+  textFilterGroup.addEventListener('click', (e: Event) => {
+    const btn = (e.target as HTMLElement).closest('button.toggle') as HTMLButtonElement | null;
+    if (!btn || btn.disabled) return;
+
+    activateToggle(textFilterGroup, btn);
+    sendToContent({ type: 'SET_TEXT_FILTER_MODE', mode: btn.dataset.mode }); // 'flag' | 'hide'
+  })
 });
