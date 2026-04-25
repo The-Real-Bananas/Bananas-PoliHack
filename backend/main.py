@@ -1,12 +1,14 @@
 import sys, os
+
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.detection.image import detect_image_url
-from src.detection.text import detect_text_content
+from src.detection.text import TextValidationError, UnexpectedResponse, detect_text_content
 from src.cache.cache import get_cached, set_cached
 
 
@@ -25,6 +27,10 @@ class ImageRequest(BaseModel):
 
 class TextRequest(BaseModel):
     text: str
+
+@app.exception_handler(TextValidationError, UnexpectedResponse)
+async def validation_error_handler(request: Request, exc: TextValidationError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 @app.post("/detect/image")
 async def detect_image(req: ImageRequest):
