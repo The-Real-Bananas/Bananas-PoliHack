@@ -145,6 +145,13 @@ export class ContentProcessor {
     }
   }
 
+  resetDisplaySettings(image: HTMLImageElement) {
+    image.style.filter = '';
+    const wrapper = image.closest('.ai-detector-wrapper');
+    if (!wrapper) return;
+    wrapper.replaceWith(image);
+  }
+
   async processImages() {
     const images = Array.from(document.querySelectorAll('img'));
     const newImages = new Array<HTMLImageElement>();
@@ -163,6 +170,15 @@ export class ContentProcessor {
     });
 
     console.log('Processed', newImages.length, 'new images');
+  }
+
+  reprocessImages() {
+    this.imageMap.forEach((score, image) => {
+      this.resetDisplaySettings(image);
+      if (this.displaySettings.photoFilterActive && this.displaySettings.globalActive) {
+        this.applyDisplaySettings(image, score);
+      }
+    });
   }
 
   processSignal(signal: any) {
@@ -193,7 +209,8 @@ export class ContentProcessor {
         this.displaySettings.propagandaDisplayMode = signal.mode;
         break;
     }
-    
+
+    this.reprocessImages();
     chrome.storage.local.set({ displaySettings: this.displaySettings });
   }
 }
