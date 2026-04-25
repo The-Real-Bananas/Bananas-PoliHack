@@ -8,7 +8,7 @@ export class ContentProcessor {
     'twitter.com': 'article[data-testid="tweet"]',
     'x.com': 'article[data-testid="tweet"]',
     'www.reddit.com': 'shreddit-post',
-    'www.linkedin.com': '.feed-shared-update-v2',
+    'www.linkedin.com': '[role="listitem"]',
     'www.facebook.com': '[role="article"]',
   };
 
@@ -46,7 +46,6 @@ export class ContentProcessor {
     }
 
     const generic = image.closest('article, [role="article"], .post, .card') as HTMLElement | null;
-    alert(generic?.outerHTML);
     return generic ?? image;
   }
 
