@@ -5,8 +5,9 @@ from fastapi import HTTPException
 
 load_dotenv()
 
-HIVE_API_KEY = os.getenv("HIVE_API_KEY")
-HIVE_URL = "https://api.thehive.ai/api/v2/task/sync"
+SIGHTENGINE_USER = os.getenv("SIGHTENGINE_USER")
+SIGHTENGINE_SECRET = os.getenv("SIGHTENGINE_SECRET")
+SIGHTENGINE_URL = os.getenv("SIGHTENGINE_URL")
 
 
 class ImageValidationError(Exception):
@@ -21,47 +22,38 @@ def validate_url(url: str) -> None:
     if url.startswith("data:"):
         raise ImageValidationError("Inline data URIs are not supported")
 
-
-def score_to_label(score: int) -> str:
-    if score > 70: return "ai"
-    if score > 40: return "mixed"
-    return "human"
-
-
-def parse_hive_response(data: dict) -> int:
+def parse_sightengine_response(data: dict) -> int:
     try:
-        classes = data["status"][0]["response"]["output"][0]["classes"]
-        for cls in classes:
-            if cls["class"] == "ai_generated":
-                return round(cls["score"] * 100)
-        return 0
-    except (KeyError, IndexError, TypeError):
-        raise HTTPException(status_code=502, detail="Unexpected Hive response format")
+        return round(data["type"]["ai_generated"] * 100)  # fixed - correct response format
+    except (KeyError, TypeError):
+        raise HTTPException(status_code=502, detail=f"Unexpected Sightengine response: {data}")
 
 
 async def detect_image_url(url: str) -> dict:
     validate_url(url)
 
-    if not HIVE_API_KEY:
-        raise ValueError("HIVE_API_KEY not found in .env")
+    if not SIGHTENGINE_USER or not SIGHTENGINE_SECRET:
+        raise ValueError("SIGHTENGINE_USER or SIGHTENGINE_SECRET not found in .env")
 
     async with httpx.AsyncClient() as client:
-        res = await client.post(
-            HIVE_URL,
-            headers={
-                "Authorization": f"Token {HIVE_API_KEY}",
-                "accept": "application/json",
+        res = await client.get(
+            SIGHTENGINE_URL,
+            params={
+                "url": url,
+                "models": "genai",
+                "api_user": SIGHTENGINE_USER,
+                "api_secret": SIGHTENGINE_SECRET
             },
             data={"url": url},
             timeout=20
         )
+
         res.raise_for_status()
         data = res.json()
 
-        score = parse_hive_response(data)
+        score = parse_sightengine_response(data)
 
         return {
             "score": score,
-            #"label": score_to_label(score),
-            "source": "hive"
+            "source": "sightengine"
         }
