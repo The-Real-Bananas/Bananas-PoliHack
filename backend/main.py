@@ -65,3 +65,19 @@ async def health():
     return {"status": "ok"}
 
 
+# am adaugat endpoint nou care primeste lista , las si pe cel normal
+class ImageBatchRequest(BaseModel):
+    urls: list[str]
+
+@app.post("/detect/images")
+async def detect_images_batch(req: ImageBatchRequest):
+    results = []
+    for url in req.urls:
+        cached = get_cached(url)
+        if cached:
+            results.append(cached)
+            continue
+        result = await detect_image_url(url)
+        set_cached(url, result)
+        results.append(result)
+    return results

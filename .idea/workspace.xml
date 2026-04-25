@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ce4535e0-c176-4b5a-b3e3-77bd96db6dfc" name="Changes" comment="sth">
+    <list default="true" id="ce4535e0-c176-4b5a-b3e3-77bd96db6dfc" name="Changes" comment="feat : solved api image rendering issue ,now it runs without errors ready to merge. Sent to Codrin the files however to implement it and refactor some things">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/extension/src/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/extension/src/api.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/extension/src/background.ts" beforeDir="false" afterPath="$PROJECT_DIR$/extension/src/background.ts" afterDir="false" />
     </list>
@@ -209,7 +210,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777132264167</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="feat : solved api image rendering issue ,now it runs without errors ready to merge. Sent to Codrin the files however to implement it and refactor some things">
+      <option name="closed" value="true" />
+      <created>1777136724001</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1777136724001</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -230,6 +239,7 @@
     <MESSAGE value="first commit" />
     <MESSAGE value="feat: added caching file" />
     <MESSAGE value="sth" />
-    <option name="LAST_COMMIT_MESSAGE" value="sth" />
+    <MESSAGE value="feat : solved api image rendering issue ,now it runs without errors ready to merge. Sent to Codrin the files however to implement it and refactor some things" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat : solved api image rendering issue ,now it runs without errors ready to merge. Sent to Codrin the files however to implement it and refactor some things" />
   </component>
 </project>

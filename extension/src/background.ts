@@ -16,4 +16,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
         return true; // keep channel open for async response
     }
+    // added for vector of images processing
+    if (message.type === 'DETECT_IMAGES_BATCH') {
+        fetch('http://localhost:8000/detect/images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: message.urls })
+        })
+        .then(res => res.json())
+        .then(data => sendResponse({ success: true, data }))
+        .catch(err => sendResponse({ success: false, error: err.message }));
+
+    return true;
+    }
 });
