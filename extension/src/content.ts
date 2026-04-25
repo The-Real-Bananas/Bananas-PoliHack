@@ -1,6 +1,6 @@
 import type { DetectionResult, DisplaySettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
-import { scanImage } from './api';
+import { scanImages } from './api';
 
 export class ContentProcessor {
   THRESHOLD_RED: number = 80;
@@ -73,7 +73,7 @@ export class ContentProcessor {
 
   applyFlag(image: HTMLImageElement, score: number) {
     if (image.parentElement?.classList.contains('ai-detector-wrapper')) return;
-    if (!image.parentNode) return; // guard null parent
+    if (!image.parentNode) return;
 
     const color = score >= this.THRESHOLD_RED ? '#ef4444' : '#f59e0b';
 
@@ -162,7 +162,7 @@ export class ContentProcessor {
       }
     }
 
-    const results = await scanImage(newImages);
+    const results = await scanImages(newImages);
     results.forEach((result, image) => {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);

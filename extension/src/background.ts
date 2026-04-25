@@ -10,6 +10,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.storage.local.get('displaySettings').then((data) => {
         sendResponse({ type: 'SENT_SETTINGS', settings: data.displaySettings ?? DEFAULT_SETTINGS });
       });
-      return true;
+      break;
+    case 'DETECT_IMAGE':
+      if (!message.url || message.url.startsWith('data:') || message.url.startsWith('blob:')) {
+          sendResponse({ success: false, error: 'Invalid URL' });
+          return true;
+      }
+
+      fetch('http://localhost:8000/detect/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: message.url })
+      })
+      .then(res => res.json())
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err => {
+          console.error('[AI Detector] Fetch failed:', err.message);
+          sendResponse({ success: false, error: err.message });
+      });
+      break;
   }
+  return true;
 });
