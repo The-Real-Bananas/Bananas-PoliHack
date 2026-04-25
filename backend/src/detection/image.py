@@ -62,6 +62,6 @@ async def detect_image_url(url: str) -> dict:
 
         return {
             "score": score,
-            "label": score_to_label(score),
+            #"label": score_to_label(score),
             "source": "hive"
         }

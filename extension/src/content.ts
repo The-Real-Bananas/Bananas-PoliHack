@@ -45,7 +45,7 @@ export class ContentProcessor {
       }
     }
 
-    const results = await scanImages(newImages);
+    const results = await scanImage(newImages);
     results.forEach((result, image) => {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
