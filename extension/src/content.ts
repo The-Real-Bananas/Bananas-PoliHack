@@ -1,5 +1,5 @@
 import type { DetectionResult, DisplaySettings } from './types';
-import { scanImage } from './api';
+import { scanImages } from './api';
 
 export class ContentProcessor {
   THRESHOLD_RED: number = 80;
@@ -45,7 +45,7 @@ export class ContentProcessor {
       }
     }
 
-    const results = await scanImage(newImages);
+    const results = await scanImages(newImages);
     results.forEach((result, image) => {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
