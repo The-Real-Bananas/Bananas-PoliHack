@@ -5,9 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ce4535e0-c176-4b5a-b3e3-77bd96db6dfc" name="Changes" comment="sth">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/detection/image.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/detection/image.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/extension/src/content.ts" beforeDir="false" afterPath="$PROJECT_DIR$/extension/src/content.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -44,20 +42,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "tie-backend-frontend",
-    "last_opened_file_path": "C:/Users/Raton/Desktop/cursuri_si_seminare/ISS/Bananas-PoliHack",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "C:\\Users\\Raton\\Desktop\\cursuri_si_seminare\\ISS\\Bananas-PoliHack\\extension\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;tie-backend-frontend&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Raton/Desktop/cursuri_si_seminare/ISS/Bananas-PoliHack&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Raton\\Desktop\\cursuri_si_seminare\\ISS\\Bananas-PoliHack\\extension\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Raton\Desktop\cursuri_si_seminare\ISS\Bananas-PoliHack\backend" />
@@ -162,11 +160,46 @@
       <option name="project" value="LOCAL" />
       <updated>1777128290605</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="sth">
+      <option name="closed" value="true" />
+      <created>1777129807009</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1777129807009</updated>
+    </task>
+    <task id="LOCAL-00012" summary="sth">
+      <option name="closed" value="true" />
+      <created>1777130088266</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1777130088266</updated>
+    </task>
+    <task id="LOCAL-00013" summary="sth">
+      <option name="closed" value="true" />
+      <created>1777130201665</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1777130201665</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="first commit" />
