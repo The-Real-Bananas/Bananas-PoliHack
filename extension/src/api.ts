@@ -16,7 +16,7 @@ export async function scanImage(images: HTMLImageElement[]): Promise<Map<HTMLIma
 
         const result: DetectionResult = await res.json()
         results.set(image, result)*/
-        results.set(image, { score: 99, source: 'mock' });
+        results.set(image, { score: Math.floor(Math.random() * 100), source: 'mock' });
     }
 
   return results;
