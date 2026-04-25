@@ -1,3 +1,5 @@
+import { DEFAULT_SETTINGS, type DisplaySettings } from "./types";
+
 console.log('Popup loaded');
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,9 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const propagandaPower = document.getElementById('propagandaPower') as HTMLButtonElement;
   const propagandaGroup = document.getElementById('propagandaToggleGroup') as HTMLDivElement;
 
-  let globalActive = true;
-  let aiActive = true;
-  let propagandaActive = false;
+  let displaySettings: DisplaySettings = DEFAULT_SETTINGS;
+
+  chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+  
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'SENT_SETTINGS') {
+      displaySettings = message.settings;
+      updateUI();
+    }
+  });
 
   async function sendToContent(payload: object) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -21,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setGlobal(active: boolean) {
-    globalActive = active;
+    displaySettings.globalActive = active;
     globalPower.setAttribute('data-active', String(active));
     globalPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
 
@@ -34,15 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
       propagandaPower.removeAttribute('disabled');
 
       // 2. Restore previous states for the sections
-      setAi(aiActive);
-      setPropaganda(propagandaActive);
+      setPhotoFilter(displaySettings.photoFilterActive);
+      setPropaganda(displaySettings.propagandaActive);
 
     } else {
       document.querySelector('.footer')?.classList.add('status-paused');
       statusText.textContent = 'Extension paused';
 
       // 1. Automatically change sections to OFF (this locks their grids)
-      setAi(false);
+      setPhotoFilter(false);
       setPropaganda(false);
 
       // 2. Disable Section Power buttons so they can't be toggled while Global is OFF
@@ -51,13 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function setAi(active: boolean) {
-    aiActive = active;
+  function setPhotoFilter(active: boolean) {
+    displaySettings.photoFilterActive = active;
     photoFilterPower.setAttribute('data-active', String(active));
     photoFilterPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
 
     // Lock/Unlock the AI buttons based on BOTH section and global state
-    if (active && globalActive) {
+    if (active && displaySettings.globalActive) {
       photoFilterGroup.classList.remove('disabled');
       photoFilterGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
     } else {
@@ -69,12 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setPropaganda(active: boolean) {
-    propagandaActive = active;
+    displaySettings.propagandaActive = active;
     propagandaPower.setAttribute('data-active', String(active));
     propagandaPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
 
     // Lock/Unlock the Propaganda buttons based on BOTH section and global state
-    if (active && globalActive) {
+    if (active && displaySettings.globalActive) {
       propagandaGroup.classList.remove('disabled');
       propagandaGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
     } else {
@@ -90,16 +99,43 @@ document.addEventListener('DOMContentLoaded', () => {
     clicked.classList.add('active');
   }
 
+  function updateUI() {
+    setGlobal(displaySettings.globalActive);
+    setPhotoFilter(displaySettings.photoFilterActive);
+    setPropaganda(displaySettings.propagandaActive);
+    
+    switch (displaySettings.photoDisplayMode) {
+      case 'blur':
+        activateToggle(photoFilterGroup, document.getElementById('photoFilterBlurButton') as HTMLButtonElement);
+        break;
+      case 'hide':
+        activateToggle(photoFilterGroup, document.getElementById('photoFilterHideButton') as HTMLButtonElement);
+        break;
+      case 'flag':
+        activateToggle(photoFilterGroup, document.getElementById('photoFilterFlagButton') as HTMLButtonElement);
+        break;
+    }
+
+    switch (displaySettings.propagandaDisplayMode) {
+      case 'flag':
+        activateToggle(propagandaGroup, document.getElementById('propagandaFlagButton') as HTMLButtonElement);
+        break;
+      case 'hide':
+        activateToggle(propagandaGroup, document.getElementById('propagandaHideButton') as HTMLButtonElement);
+        break;
+    }
+  }
+
   // Event Listeners
   globalPower.addEventListener('click', () => {
-    setGlobal(!globalActive);
-    sendToContent({ type: 'SET_GLOBAL', enabled: globalActive });
+    setGlobal(!displaySettings.globalActive);
+    sendToContent({ type: 'SET_GLOBAL', enabled: displaySettings.globalActive });
   });
 
   photoFilterPower.addEventListener('click', () => {
-    if (!globalActive) return; // Failsafe: can't toggle if global is off
-    setAi(!aiActive);
-    sendToContent({ type: 'SET_PHOTO_FILTER', enabled: aiActive });
+    if (!displaySettings.globalActive) return; // Failsafe: can't toggle if global is off
+    setPhotoFilter(!displaySettings.photoFilterActive);
+    sendToContent({ type: 'SET_PHOTO_FILTER', enabled: displaySettings.photoFilterActive });
   });
 
   photoFilterGroup.addEventListener('click', (e: Event) => {
@@ -111,9 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   propagandaPower.addEventListener('click', () => {
-    if (!globalActive) return; // Failsafe: can't toggle if global is off
-    setPropaganda(!propagandaActive);
-    sendToContent({ type: 'SET_PROPAGANDA', enabled: propagandaActive });
+    if (!displaySettings.globalActive) return; // Failsafe: can't toggle if global is off
+    setPropaganda(!displaySettings.propagandaActive);
+    sendToContent({ type: 'SET_PROPAGANDA', enabled: displaySettings.propagandaActive });
   });
 
   propagandaGroup.addEventListener('click', (e: Event) => {

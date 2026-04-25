@@ -11,8 +11,10 @@
   "action": {
     "default_popup": "dist/popup.html"
   },
-  "content_scripts": [{
+  "content_scripts": [
+  {
     "matches": ["<all_urls>"],
     "js": ["dist/content.js"]
-  }]
+  }
+]
 }

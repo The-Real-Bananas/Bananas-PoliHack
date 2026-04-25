@@ -7,7 +7,6 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        content: 'src/content.ts',
         background: 'src/background.ts',
         popup: 'popup.html',
       },

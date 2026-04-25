@@ -18,6 +18,14 @@ export class ContentProcessor {
   displaySettings: DisplaySettings;
 
 
+  static async create(): Promise<ContentProcessor> {
+    const instance = new ContentProcessor();
+    const data = await chrome.storage.local.get('displaySettings');
+    if (data.displaySettings) {
+      instance.displaySettings = data.displaySettings as DisplaySettings;
+    }
+    return instance;
+  }
 
   constructor() {
     this.displaySettings = DEFAULT_SETTINGS;
@@ -185,13 +193,17 @@ export class ContentProcessor {
         this.displaySettings.propagandaDisplayMode = signal.mode;
         break;
     }
+    
+    chrome.storage.local.set({ displaySettings: this.displaySettings });
   }
 }
 
-const processor = new ContentProcessor();
+(async () => {
+  const processor = await ContentProcessor.create();
 
-chrome.runtime.onMessage.addListener((signal) => {
-  processor.processSignal(signal);
-});
+  chrome.runtime.onMessage.addListener((signal) => {
+    processor.processSignal(signal);
+  });
 
-console.log('[AI Detector] Content script loaded', processor);
+  console.log('[AI Detector] Content script loaded', processor);
+})();
