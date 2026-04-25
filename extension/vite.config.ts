@@ -4,6 +4,7 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         content: 'src/content.ts',
@@ -12,6 +13,8 @@ export default defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        format: 'es',
       }
     }
   }
