@@ -1,0 +1,305 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    width: 270px;
+    height: auto;
+    background: transparent;
+}
+
+body {
+    width: 270px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+}
+
+.glass-shell {
+    position: relative;
+    width: 270px;
+    border-radius: 2px;
+    overflow: hidden;
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    background:
+        linear-gradient(165deg,
+            rgba(255, 255, 255, 0.07) 0%,
+            rgba(255, 255, 255, 0.015) 40%,
+            rgba(255, 255, 255, 0.04) 100%),
+        linear-gradient(135deg,
+            rgba(20, 35, 75, 0.72) 0%,
+            rgba(8, 14, 40, 0.80) 45%,
+            rgba(30, 12, 55, 0.74) 100%);
+
+    -webkit-backdrop-filter: blur(48px) saturate(1.8) brightness(0.92);
+    backdrop-filter: blur(48px) saturate(1.8) brightness(0.92);
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+        inset 1px 0 0 rgba(255, 255, 255, 0.08),
+        inset -1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+.noise,
+.frost {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.noise {
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-wrap {
+    width: 30px;
+    height: 30px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.80);
+}
+
+.title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.power-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Mutes out power buttons when they are disabled */
+.power-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.power-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.power-btn[data-active="true"] {
+    background: rgba(100, 255, 160, 0.08);
+    border-color: rgba(100, 255, 160, 0.25);
+}
+
+.power-btn[data-active="true"] .power-indicator {
+    background: rgba(100, 255, 160, 0.95);
+    box-shadow: 0 0 7px rgba(80, 255, 140, 0.70);
+}
+
+.power-btn[data-active="true"] .power-label {
+    color: rgba(120, 255, 180, 0.95);
+}
+
+.power-btn[data-active="false"] {
+    background: rgba(255, 80, 80, 0.08);
+    border-color: rgba(255, 80, 80, 0.25);
+}
+
+.power-btn[data-active="false"] .power-indicator {
+    background: rgba(255, 80, 80, 0.90);
+    box-shadow: 0 0 7px rgba(255, 70, 70, 0.60);
+}
+
+.power-btn[data-active="false"] .power-label {
+    color: rgba(255, 100, 100, 0.90);
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.section {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-label {
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07) 20%, rgba(255, 255, 255, 0.07) 80%, transparent);
+}
+
+.toggle-group {
+    display: flex;
+    gap: 5px;
+}
+
+.toggle-group.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.toggle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 6px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.28);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.toggle:disabled {
+    cursor: not-allowed;
+}
+
+.toggle:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.58);
+}
+
+.toggle.active {
+    background: rgba(255, 255, 255, 0.11);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.96);
+    box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.30);
+}
+
+.counter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    padding: 7px 10px;
+    margin-top: 2px;
+}
+
+.counter-label {
+    font-size: 9.5px;
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.counter-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    z-index: 1;
+}
+
+.pulse-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(120, 255, 180, 0.95);
+    box-shadow: 0 0 6px rgba(100, 255, 160, 0.65);
+    animation: blink 2.4s ease-in-out infinite;
+}
+
+.status-text {
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.22);
+}
+
+.status-paused .pulse-dot {
+    background: rgba(255, 80, 80, 0.90);
+    box-shadow: 0 0 6px rgba(255, 70, 70, 0.65);
+}
+
+.status-paused .status-text {
+    color: rgba(255, 100, 100, 0.55);
+}
