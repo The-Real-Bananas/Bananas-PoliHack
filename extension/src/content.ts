@@ -136,12 +136,10 @@ export class ContentProcessor {
   }
 
   textFlag(element: HTMLElement, score: number) {
-    // this is actualy just a highlight, not a flag, but whatever
     const color = this.scoreToColor(score);
-    element.style.backgroundColor = color;
-    element.style.color = 'white';
-    element.style.padding = '2px 4px';
-    element.style.borderRadius = '4px';
+    element.style.backgroundColor = `${color}33`;
+    element.style.borderLeft = `3px solid ${color}`;
+    element.style.borderRadius = '2px';
   }
 
   applyTextDisplaySettings(element: HTMLElement, score: number) {
@@ -221,11 +219,11 @@ export class ContentProcessor {
   }
 
   async processText() {
-    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, span, article, [role="article"]'));
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, article, [role="article"]'));
     const newElements = new Array<HTMLElement>();
 
     for (const el of elements) {
-      if (!this.textMap.has(el)) {
+      if (!this.textMap.has(el) && el.innerText.trim().length >= 25) {
         newElements.push(el);
       }
     }
