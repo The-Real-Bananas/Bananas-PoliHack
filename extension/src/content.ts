@@ -10,7 +10,7 @@ export class ContentProcessor {
     'x.com': 'article[data-testid="tweet"]',
     'www.reddit.com': 'shreddit-post',
     'www.linkedin.com': '[role="listitem"]',
-    'www.facebook.com': '[role="article"]',
+    'www.facebook.com': 'div[aria-posinset]',
   };
 
   imageMap: Map<HTMLImageElement, number> = new Map();
@@ -161,7 +161,13 @@ export class ContentProcessor {
     const newImages = new Array<HTMLImageElement>();
 
     for (const image of images) {
-      if (!this.imageMap.has(image)) {
+      const rect = image.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+
+      const style = getComputedStyle(image);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+
+      if (!this.imageMap.has(image) ) {
         newImages.push(image);
       }
     }
@@ -171,6 +177,7 @@ export class ContentProcessor {
       console.log('Scanning:', image.src);
       this.imageMap.set(image, result.score);
       this.applyDisplaySettings(image, result.score);
+      console.log('Result:', result.score);
     });
 
     console.log('Processed', newImages.length, 'new images');
