@@ -101,7 +101,12 @@ async def detect_image(req: ImageRequest):
     try:
         result = await detect_image_url(req.url)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Detection failed: {type(e).__name__}: {e}",
+        )
     set_cached(req.url, result)
     return result
 
@@ -112,6 +117,16 @@ async def detect_text(req: TextRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+async def _warm_image_detector():
+    try:
+        from src.detection.ai_image_detector import get_detector
+        await asyncio.to_thread(get_detector)
+        print("[startup] AI image detector warmed")
+    except Exception as e:
+        print(f"[startup] AI image detector warmup failed: {e}")
 
 
 
