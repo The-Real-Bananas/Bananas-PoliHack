@@ -336,12 +336,16 @@ export class ContentProcessor {
     const elements = Array.from(document.querySelectorAll<HTMLElement>(selector));
     const candidates: HTMLElement[] = [];
 
-    // Drop descendants whose ancestor is already a candidate, so a parent
-    // text div and its inner text div don't both get scanned.
+    // Drop descendants whose ancestor is either (a) already a candidate this
+    // tick or (b) was scanned in a previous tick and is in textMap. Without
+    // (b), an outer post div flagged on tick 1 and an inner text div picked
+    // up by a later mutation on tick 2 would both get flagged.
+    const alreadyScanned = Array.from(this.textMap.keys());
     for (const el of elements) {
       if (this.textMap.has(el)) continue;
       if (el.innerText.trim().length < 25) continue;
       if (candidates.some(c => c.contains(el))) continue;
+      if (alreadyScanned.some(a => a.contains(el))) continue;
       candidates.push(el);
     }
 
