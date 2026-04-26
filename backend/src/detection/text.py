@@ -34,6 +34,11 @@ def validate_text(text: str) -> None:
 
 
 async def detect_text_content(text: str) -> dict:
+    print("Backend got: ", text)
+    return {
+        "score" : 99,
+        "source" : "sapling"
+    }
     
     validate_text(text) #throw before hitting API if invalid
     if not SAPLING_KEY:

@@ -54,6 +54,7 @@ async def detect_image(req: ImageRequest):
 
 @app.post("/detect/text")
 async def detect_text(req: TextRequest):
+    print("HERE!")
     key = req.text[:100] # use first 100 chars as cache key
     cached = get_cached(key)
     if cached:

@@ -36,6 +36,7 @@ export class ContentProcessor {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         this.processImages();
+        this.processText();
       }, 1000);
     });
 
@@ -213,7 +214,7 @@ export class ContentProcessor {
   }
 
   async processText() {
-    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, span, div'));
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, span, article, [role="article"]'));
     const newElements = new Array<HTMLElement>();
 
     for (const el of elements) {
@@ -221,6 +222,10 @@ export class ContentProcessor {
         newElements.push(el);
       }
     }
+
+    console.log('Found', newElements.length, 'new text elements');
+
+    if (newElements.length === 0) return;
 
     const results = await scanTexts(newElements);
     results.forEach((result, el) => {
@@ -303,6 +308,9 @@ if (!(window as any)[SINGLETON_KEY]) {
         chrome.runtime.onMessage.addListener((signal) => {
             processor.processSignal(signal);
         });
+
+        processor.processImages();
+        processor.processText();
 
         console.log('[AI Detector] Content script loaded', processor);
     })();
