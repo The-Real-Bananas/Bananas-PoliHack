@@ -10,8 +10,7 @@ import threading
 from functools import lru_cache
 
 MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    "museum",
+    os.path.dirname(__file__),
     "museum.pth",
 )
 
