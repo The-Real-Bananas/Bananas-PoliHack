@@ -15,6 +15,9 @@ export interface DisplaySettings {
 
   propagandaActive: boolean;
   propagandaDisplayMode: TextDisplayMode;
+
+  hateSpeechActive: boolean;
+  hateSpeechDisplayMode: TextDisplayMode;
 }
 
 export const DEFAULT_SETTINGS: DisplaySettings = {
@@ -25,9 +28,24 @@ export const DEFAULT_SETTINGS: DisplaySettings = {
   textDisplayMode: 'flag',
   propagandaActive: false,
   propagandaDisplayMode: 'flag',
+  hateSpeechActive: false,
+  hateSpeechDisplayMode: 'flag',
 };
 
 export interface DetectionResult {
   score: number,
   source: string,
+}
+
+export type MisinfoLabel = 'too-short' | 'personal' | 'opinion' | 'misinformation'
+                          | 'unverified-claim' | 'propaganda' | 'emotionally-manipulative' | 'credible';
+
+export type HateSpeechLabel = 'hate-speech' | 'too-short' | 'clean';
+
+export type AITextLabel = 'ai' | 'human' | 'mixed';
+
+export interface TextDetectionResult {
+  misinfoLabel: MisinfoLabel;
+  hateSpeechLabel: HateSpeechLabel;
+  aiTextLabel: AITextLabel;
 }

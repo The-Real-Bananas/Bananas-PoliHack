@@ -47,6 +47,21 @@ async def extract_text(req: TextRequest):
     return {"text": req.text}
 
 
+@app.post("/detect/all-text")
+async def detect_all_text(req: TextRequest):
+    print(req.text)
+    
+    hate, misinfo, is_ai = await asyncio.gather(
+        detect_hate_speech(req.text),
+        detect_misinfo(req.text),
+        detect_text(req.text),
+    )
+    return {
+        "hate": hate["label"],
+        "misinfo": misinfo["label"],
+        "is_ai": is_ai["label"],
+    }
+
 @app.post("/analyze")
 async def analyze(req: TextRequest):
     hate, misinfo = await asyncio.gather(
@@ -86,7 +101,7 @@ async def detect_image(req: ImageRequest):
 
 @app.post("/detect/text")
 async def detect_text(req: TextRequest):
-    print("HERE!")
+    return { "label": "human" }
     key = req.text[:100] # use first 100 chars as cache key
     cached = get_cached(key)
     if cached:

@@ -15,6 +15,14 @@ class UnexpectedResponse(Exception):
     pass
 
 
+def score_to_label(score: int) -> str:
+    if score >= 80:
+        return "ai"
+    elif score <= 30:
+        return "human"
+    else:
+        return "mixed"
+
 def validate_text(text: str) -> None:
     if not text or not text.strip():
         raise TextValidationError("Text is empty")
@@ -54,5 +62,6 @@ async def detect_text_content(text: str) -> dict:
 
         return {
             "score" : score,
-            "source" : "sapling"
+            "source" : "sapling",
+            "label" : score_to_label(score)
         }

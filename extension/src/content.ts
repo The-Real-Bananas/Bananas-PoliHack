@@ -143,17 +143,22 @@ export class ContentProcessor {
   }
 
   applyTextDisplaySettings(element: HTMLElement, score: number) {
-    switch (this.displaySettings.textDisplayMode) {
-      case 'hide':
-        if (score >= this.THRESHOLD_RED) {
-          this.textHide(element);
-        }
-        break;
-      case 'flag':
-        if (score >= this.THRESHOLD_YELLOW) {
-          this.textFlag(element, score);
-        }
-        break;
+    if (this.displaySettings.propagandaActive && this.displaySettings.propagandaDisplayMode === 'hide'
+      || this.displaySettings.hateSpeechActive && this.displaySettings.hateSpeechDisplayMode === 'hide'
+      || this.displaySettings.textFilterActive && this.displaySettings.textDisplayMode === 'hide'
+    ) {
+      if (score >= this.THRESHOLD_RED) {
+        this.textHide(element);
+      }
+    }
+
+    if (this.displaySettings.propagandaActive && this.displaySettings.propagandaDisplayMode === 'flag'
+      || this.displaySettings.hateSpeechActive && this.displaySettings.hateSpeechDisplayMode === 'flag'
+      || this.displaySettings.textFilterActive && this.displaySettings.textDisplayMode === 'flag'
+    ) {
+      if (score >= this.THRESHOLD_YELLOW) {
+        this.textFlag(element, score);
+      }
     }
   }
 
@@ -223,7 +228,7 @@ export class ContentProcessor {
     const newElements = new Array<HTMLElement>();
 
     for (const el of elements) {
-      if (!this.textMap.has(el) && el.innerText.trim().length >= 80) {
+      if (!this.textMap.has(el) && el.innerText.trim().length >= 25) {
         newElements.push(el);
       }
     }
@@ -252,7 +257,8 @@ export class ContentProcessor {
   reprocessText() {
     this.textMap.forEach((score, el) => {
       this.resetTextDisplaySettings(el);
-      if (this.displaySettings.textFilterActive && this.displaySettings.globalActive) {
+
+      if (this.displaySettings.globalActive) {
         this.applyTextDisplaySettings(el, score);
       }
     });
@@ -293,6 +299,14 @@ export class ContentProcessor {
 
       case 'SET_PROPAGANDA_MODE':
         this.displaySettings.propagandaDisplayMode = signal.mode;
+        break;
+
+      case 'SET_HATE_SPEECH':
+        this.displaySettings.hateSpeechActive = signal.enabled;
+        break;
+
+      case 'SET_HATE_SPEECH_MODE':
+        this.displaySettings.hateSpeechDisplayMode = signal.mode;
         break;
     }
 

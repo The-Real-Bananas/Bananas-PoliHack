@@ -1,4 +1,4 @@
-import type { DetectionResult } from './types'
+import type { DetectionResult, TextDetectionResult } from './types'
 
 function getRealImageUrl(image: HTMLImageElement): string | null {
     // try these attributes in order - real URL is often hidden here
@@ -45,8 +45,8 @@ export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLIm
   return results;
 }
         
-export async function scanTexts(texts: HTMLElement[]): Promise<Map<HTMLElement, DetectionResult>> {
-    const results = new Map<HTMLElement, DetectionResult>();
+export async function scanTexts(texts: HTMLElement[]): Promise<Map<HTMLElement, TextDetectionResult>> {
+    const results = new Map<HTMLElement, TextDetectionResult>();
     
     for (const text of texts) {
         const textTrim = text.innerText.trim();
