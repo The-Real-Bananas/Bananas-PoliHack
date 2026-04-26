@@ -44,3 +44,30 @@ export async function scanImages(images: HTMLImageElement[]): Promise<Map<HTMLIm
 
   return results;
 }
+        
+export async function scanTexts(texts: HTMLElement[]): Promise<Map<HTMLElement, DetectionResult>> {
+    const results = new Map<HTMLElement, DetectionResult>();
+    
+    for (const text of texts) {
+        const textTrim = text.innerText.trim();
+        if (!textTrim) continue;
+
+        await Promise.race([
+            new Promise<void>((resolve) => {
+                chrome.runtime.sendMessage(
+                    { type: 'DETECT_TEXT', text: textTrim },
+                    (response) => {
+                        if (response?.success) {
+                            results.set(text, response.data);
+                        } else {
+                            console.warn('[AI Detector] Detection failed for:', textTrim, response?.error); 
+                        }
+                        resolve();
+                    }
+                );
+            }),
+            new Promise<void>((resolve) => setTimeout(resolve, 5000)) // 5s timeout
+        ]);
+    }
+    return results;
+}

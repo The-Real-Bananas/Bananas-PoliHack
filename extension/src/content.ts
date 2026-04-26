@@ -1,6 +1,6 @@
 import type { DetectionResult, DisplaySettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
-import { scanImages } from './api';
+import { scanImages, scanTexts } from './api';
 
 export class ContentProcessor {
   THRESHOLD_RED: number = 80;
@@ -14,6 +14,7 @@ export class ContentProcessor {
   };
 
   imageMap: Map<HTMLImageElement, number> = new Map();
+  textMap: Map<HTMLElement, number> = new Map();
   observer: MutationObserver;
   displaySettings: DisplaySettings;
 
@@ -35,6 +36,7 @@ export class ContentProcessor {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         this.processImages();
+        this.processText();
       }, 1000);
     });
 
@@ -129,6 +131,32 @@ export class ContentProcessor {
     wrapper.appendChild(badge);
   }
 
+  textHide(element: HTMLElement) {
+    element.style.display = 'none';
+  }
+
+  textFlag(element: HTMLElement, score: number) {
+    const color = this.scoreToColor(score);
+    element.style.backgroundColor = `${color}33`;
+    element.style.borderLeft = `3px solid ${color}`;
+    element.style.borderRadius = '2px';
+  }
+
+  applyTextDisplaySettings(element: HTMLElement, score: number) {
+    switch (this.displaySettings.textDisplayMode) {
+      case 'hide':
+        if (score >= this.THRESHOLD_RED) {
+          this.textHide(element);
+        }
+        break;
+      case 'flag':
+        if (score >= this.THRESHOLD_YELLOW) {
+          this.textFlag(element, score);
+        }
+        break;
+    }
+  }
+
   applyDisplaySettings(image: HTMLImageElement, score: number) {
     switch (this.displaySettings.photoDisplayMode) {
       case 'blur':
@@ -154,6 +182,13 @@ export class ContentProcessor {
     const wrapper = image.closest('.ai-detector-wrapper');
     if (!wrapper) return;
     wrapper.replaceWith(image);
+  }
+
+  resetTextDisplaySettings(element: HTMLElement) {
+    element.style.backgroundColor = '';
+    element.style.color = '';
+    element.style.padding = '';
+    element.style.borderRadius = '';
   }
 
   async processImages() {
@@ -183,11 +218,42 @@ export class ContentProcessor {
     console.log('Processed', newImages.length, 'new images');
   }
 
+  async processText() {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, article, [role="article"]'));
+    const newElements = new Array<HTMLElement>();
+
+    for (const el of elements) {
+      if (!this.textMap.has(el) && el.innerText.trim().length >= 25) {
+        newElements.push(el);
+      }
+    }
+
+    console.log('Found', newElements.length, 'new text elements');
+
+    if (newElements.length === 0) return;
+
+    const results = await scanTexts(newElements);
+    results.forEach((result, el) => {
+      console.log('Scanning text:', el.innerText);
+      this.textMap.set(el, result.score);
+      this.applyTextDisplaySettings(el, result.score);
+    });
+  }
+
   reprocessImages() {
     this.imageMap.forEach((score, image) => {
       this.resetDisplaySettings(image);
       if (this.displaySettings.photoFilterActive && this.displaySettings.globalActive) {
         this.applyDisplaySettings(image, score);
+      }
+    });
+  }
+
+  reprocessText() {
+    this.textMap.forEach((score, el) => {
+      this.resetTextDisplaySettings(el);
+      if (this.displaySettings.textFilterActive && this.displaySettings.globalActive) {
+        this.applyTextDisplaySettings(el, score);
       }
     });
   }
@@ -201,6 +267,7 @@ export class ContentProcessor {
         if (!signal.enabled) { 
           this.displaySettings.photoFilterActive = false;
           this.displaySettings.propagandaActive = false;
+          this.displaySettings.textFilterActive = false;
         }
         break;
 
@@ -210,6 +277,14 @@ export class ContentProcessor {
 
       case 'SET_PHOTO_FILTER_MODE':
         this.displaySettings.photoDisplayMode = signal.mode;
+        break;
+
+      case 'SET_TEXT_FILTER':
+        this.displaySettings.textFilterActive = signal.enabled;
+        break;
+
+      case 'SET_TEXT_FILTER_MODE':
+        this.displaySettings.textDisplayMode = signal.mode;
         break;
 
       case 'SET_PROPAGANDA':
@@ -222,6 +297,7 @@ export class ContentProcessor {
     }
 
     this.reprocessImages();
+    this.reprocessText();
     chrome.storage.local.set({ displaySettings: this.displaySettings });
   }
 }
@@ -237,6 +313,9 @@ if (!(window as any)[SINGLETON_KEY]) {
         chrome.runtime.onMessage.addListener((signal) => {
             processor.processSignal(signal);
         });
+
+        processor.processImages();
+        processor.processText();
 
         console.log('[AI Detector] Content script loaded', processor);
     })();
