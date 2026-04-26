@@ -223,7 +223,7 @@ export class ContentProcessor {
     const newElements = new Array<HTMLElement>();
 
     for (const el of elements) {
-      if (!this.textMap.has(el) && el.innerText.trim().length >= 25) {
+      if (!this.textMap.has(el) && el.innerText.trim().length >= 80) {
         newElements.push(el);
       }
     }

@@ -1,6 +1,6 @@
 import asyncio
 import sys, os
-from http.client import HTTPException
+from fastapi import HTTPException
 
 sys.path.insert(0, os.path.dirname(__file__))
 
