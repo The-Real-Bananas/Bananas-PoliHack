@@ -60,6 +60,13 @@ export class ContentProcessor {
 
   pendingImageLoads: WeakSet<HTMLImageElement> = new WeakSet();
 
+  imageBadges: Map<HTMLImageElement, {
+    badge: HTMLElement;
+    tooltip: HTMLElement;
+    onEnter: () => void;
+    onLeave: () => void;
+  }> = new Map();
+
   watchImageLoad(image: HTMLImageElement) {
     if (this.pendingImageLoads.has(image)) return;
     this.pendingImageLoads.add(image);
@@ -106,28 +113,15 @@ export class ContentProcessor {
   }
 
   applyFlag(image: HTMLImageElement, score: number) {
-    if (image.parentElement?.classList.contains('ai-detector-wrapper')) return;
-    if (!image.parentNode) return;
+    if (this.imageBadges.has(image)) return;
 
     const color = score >= this.THRESHOLD_RED ? '#ef4444' : '#f59e0b';
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'ai-detector-wrapper';
-    wrapper.style.cssText = 'position:relative;display:inline-block;';
-
-    const badge = document.createElement('div');
-    badge.style.cssText = `
-      position:absolute;top:6px;right:6px;
-      width:22px;height:22px;border-radius:50%;
-      background:${color};color:white;
-      font-size:14px;font-weight:bold;
-      display:flex;align-items:center;justify-content:center;
-      z-index:9999;cursor:pointer;
-      box-shadow:0 1px 4px rgba(0,0,0,0.4);
-    `;
-    badge.textContent = '!';
+    image.style.outline = `4px solid ${color}`;
+    image.style.outlineOffset = '-4px';
 
     const tooltip = document.createElement('div');
+    tooltip.className = 'ai-detector-image-tooltip';
     tooltip.style.cssText = `
       position:fixed;
       background:${color};color:white;
@@ -144,19 +138,25 @@ export class ContentProcessor {
     `;
     document.body.appendChild(tooltip);
 
-    badge.addEventListener('mouseenter', () => {
-      const rect = badge.getBoundingClientRect();
+    const onEnter = () => {
+      const rect = image.getBoundingClientRect();
       tooltip.style.top = `${rect.top}px`;
-      tooltip.style.left = `${rect.left - tooltip.offsetWidth - 8}px`;
+      tooltip.style.left = `${rect.right + 8}px`;
       tooltip.style.opacity = '1';
-    });
-    badge.addEventListener('mouseleave', () => {
+    };
+    const onLeave = () => {
       tooltip.style.opacity = '0';
-    });
+    };
+    image.addEventListener('mouseenter', onEnter);
+    image.addEventListener('mouseleave', onLeave);
 
-    image.parentNode?.insertBefore(wrapper, image);
-    wrapper.appendChild(image);
-    wrapper.appendChild(badge);
+    // Reuse imageBadges to track outline + tooltip; badge field unused now.
+    this.imageBadges.set(image, {
+      badge: image,
+      tooltip,
+      onEnter,
+      onLeave,
+    });
   }
 
   textHide(element: HTMLElement) {
@@ -284,9 +284,20 @@ export class ContentProcessor {
 
   resetDisplaySettings(image: HTMLImageElement) {
     image.style.filter = '';
+    image.style.outline = '';
+    image.style.outlineOffset = '';
+
+    const handle = this.imageBadges.get(image);
+    if (handle) {
+      image.removeEventListener('mouseenter', handle.onEnter);
+      image.removeEventListener('mouseleave', handle.onLeave);
+      handle.tooltip.remove();
+      this.imageBadges.delete(image);
+    }
+
+    // Back-compat: undo any leftover wrapper from an older build.
     const wrapper = image.closest('.ai-detector-wrapper');
-    if (!wrapper) return;
-    wrapper.replaceWith(image);
+    if (wrapper) wrapper.replaceWith(image);
   }
 
   resetTextDisplaySettings(element: HTMLElement) {
