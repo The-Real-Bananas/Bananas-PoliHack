@@ -11,10 +11,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.detection.image import detect_image_url
-from src.detection.text import TextValidationError, UnexpectedResponse, detect_text_content
+#from src.detection.text import TextValidationError, UnexpectedResponse, detect_text_content
 from src.cache.cache import get_cached, set_cached
 from src.detection.hate_speech_detector import detect_hate_speech
 from src.detection.misinfo import detect_misinfo
+
+from src.detection.ai_generated_text_detector import (
+    TextValidationError,
+    UnexpectedResponse,
+    detect_text_content,
+)
 
 load_dotenv()
 
@@ -40,6 +46,9 @@ class MisinfoRequest(BaseModel):
 class HatefulRequest(BaseModel):
     text: str
 
+class AiGeneratedTextRequest(BaseModel):
+    text: str
+
 
 async def _detect_ai_text(text: str) -> dict:
     # Stubbed AI-text detector. Replace body with detect_text_content(text)
@@ -57,7 +66,7 @@ async def detect_all_text(req: TextRequest):
     hate, misinfo, ai = await asyncio.gather(
         detect_hate_speech(req.text),
         detect_misinfo(req.text),
-        _detect_ai_text(req.text),
+        detect_text_content(req.text),
     )
     return {
         "hateSpeechLabel": hate.get("label"),
@@ -141,3 +150,19 @@ async def detect_hateful_speach(req: HatefulRequest):
 
     set_cached("hateful:" + req.text[:100],result)
     return result
+
+
+@app.post("/detect/ai-text")
+async def detect_ai_generated_text(req: AiGeneratedTextRequest):
+    cached = get_cached("generated_text:" + req.text[:100])
+    if cached:
+        return cached
+
+    try:
+        result = await detect_text_content(req.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    set_cached("generated_text:" + req.text[:100],result)
+    return result
+
