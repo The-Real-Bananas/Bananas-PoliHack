@@ -117,11 +117,20 @@ async def detect_misinfo(text: str) -> dict:
             "source": "keyword-detector"
         }
 
-    try:
-        result = _propaganda_detector()(text[:512])[0]
-    except Exception as e:
-        return _unavailable("propaganda-unavailable", e)
+        # LAYER 5 — emotionally manipulative framing
+        sentiment = sentiment_classifier(text[:512])[0]
+        if sentiment["label"] == "negative" and sentiment["score"] > 0.65:
+            return {
+                "flagged": True,
+                "label": "emotionally-manipulative",
+                "score": int(sentiment["score"] * 100),
+                "skipped": False,
+                "reason": "Extremely negative framing on factual claim",
+                "source": "twitter-roberta-sentiment"
+            }
 
+    # LAYER 4 — propaganda model
+    result = propaganda_detector(text[:512])[0]
     is_propaganda = result["label"] == "PROPAGANDA"
     confidence = int(result["score"] * 100)
 
@@ -134,20 +143,6 @@ async def detect_misinfo(text: str) -> dict:
             "source": "PropagandaDetection"
         }
 
-    try:
-        sentiment = _sentiment_classifier()(text[:512])[0]
-    except Exception as e:
-        return _unavailable("sentiment-unavailable", e)
-
-    if sentiment["label"] == "negative" and sentiment["score"] > 0.95:
-        return {
-            "flagged": True,
-            "label": "emotionally-manipulative",
-            "score": int(sentiment["score"] * 100),
-            "skipped": False,
-            "reason": "Extremely negative framing on factual claim",
-            "source": "twitter-roberta-sentiment"
-        }
 
     return {
         "flagged": False,
