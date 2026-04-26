@@ -1,4 +1,6 @@
+import asyncio
 import sys, os
+from http.client import HTTPException
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -11,6 +13,8 @@ from pydantic import BaseModel
 from src.detection.image import detect_image_url
 from src.detection.text import TextValidationError, UnexpectedResponse, detect_text_content
 from src.cache.cache import get_cached, set_cached
+from src.detection.hate_speech_detector import detect_hate_speech
+from src.detection.misinfo import detect_misinfo
 
 load_dotenv()
 
@@ -29,6 +33,31 @@ class ImageRequest(BaseModel):
 
 class TextRequest(BaseModel):
     text: str
+class MisinfoRequest(BaseModel):
+    text: str
+class HatefulRequest(BaseModel):
+    text: str
+
+class TextRequest(BaseModel):
+    text: str
+
+
+@app.post("/text")
+async def extract_text(req: TextRequest):
+    return {"text": req.text}
+
+
+@app.post("/analyze")
+async def analyze(req: TextRequest):
+    hate, misinfo = await asyncio.gather(
+        detect_hate_speech(req.text),
+        detect_misinfo(req.text),
+    )
+    return {
+        "text": req.text,
+        "hate": hate,
+        "misinfo": misinfo,
+    }
 
 @app.exception_handler(TextValidationError)
 async def text_validation_error_handler(request: Request, exc: TextValidationError):
@@ -48,7 +77,10 @@ async def detect_image(req: ImageRequest):
 
     if cached:
         return cached
-    result = await detect_image_url(req.url)
+    try:
+        result = await detect_image_url(req.url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
     set_cached(req.url, result)
     return result
 
@@ -59,7 +91,10 @@ async def detect_text(req: TextRequest):
     cached = get_cached(key)
     if cached:
         return cached
-    result = await detect_text_content(req.text)
+    try:
+        result = await detect_text_content(req.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
     set_cached(key, result)
     return result
 
@@ -68,3 +103,30 @@ async def health():
     return {"status": "ok"}
 
 
+
+@app.post("/detect/misinfo")
+async def detect_misinfo_endpoint(req: MisinfoRequest):
+    cached = get_cached("misinfo:" + req.text[:100])
+    if cached:
+        return cached
+    try:
+        result = await detect_misinfo(req.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    set_cached("misinfo:" + req.text[:100], result)
+    return result
+
+
+@app.post("/detect/hateful_speach")
+async def detect_hateful_speach(req: HatefulRequest):
+    cached = get_cached("hateful:" + req.text[:100])
+    if cached:
+        return cached
+
+    try:
+        result = await detect_hate_speech(req.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    set_cached("hateful:" + req.text[:100],result)
+    return result
