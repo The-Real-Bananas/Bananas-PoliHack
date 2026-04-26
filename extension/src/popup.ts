@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (response) => {
     if (response?.settings) {
       displaySettings = response.settings;
-      displaySettings.textDisplayMode = 'flag';
       updateUI();
     }
   });

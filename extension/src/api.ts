@@ -50,12 +50,12 @@ export async function scanTexts(texts: HTMLElement[]): Promise<Map<HTMLElement, 
     
     for (const text of texts) {
         const textTrim = text.innerText.trim();
-        if (!textTrim) continue; // skip empty text
+        if (!textTrim) continue;
 
         await Promise.race([
             new Promise<void>((resolve) => {
                 chrome.runtime.sendMessage(
-                    { type: 'DETECT_TEXT', url: textTrim },
+                    { type: 'DETECT_TEXT', text: textTrim },
                     (response) => {
                         if (response?.success) {
                             results.set(text, response.data);
