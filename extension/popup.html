@@ -142,6 +142,41 @@
         </div>
       </div>
 
+      <div class="divider"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-label">Hate Speech Filter</div>
+          <button class="power-btn power-toggle" id="hateSpeechPower" type="button" data-active="false">
+            <span class="power-indicator"></span>
+            <span class="power-label">OFF</span>
+          </button>
+        </div>
+
+        <div class="toggle-group disabled" id="hateSpeechToggleGroup">
+          <button class="toggle" data-mode="hide" type="button" id="hateSpeechHideButton" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+            <span>Hide</span>
+          </button>
+          <button class="toggle" data-mode="flag" type="button" id="hateSpeechFlagButton" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+              <line x1="4" y1="22" x2="4" y2="15" />
+            </svg>
+            <span>Flag</span>
+          </button>
+        </div>
+        <div class="counter-row">
+          <span class="counter-label">Hate Speech filtered</span>
+          <span class="counter-value" id="hateSpeechCounter">0</span>
+        </div>
+      </div>
+
+
     </div>
 
     <div class="footer">

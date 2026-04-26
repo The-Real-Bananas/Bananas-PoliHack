@@ -1,6 +1,6 @@
 import asyncio
 import sys, os
-from http.client import HTTPException
+from fastapi import HTTPException
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -33,19 +33,40 @@ class ImageRequest(BaseModel):
 
 class TextRequest(BaseModel):
     text: str
+
 class MisinfoRequest(BaseModel):
     text: str
+
 class HatefulRequest(BaseModel):
     text: str
 
-class TextRequest(BaseModel):
-    text: str
+
+async def _detect_ai_text(text: str) -> dict:
+    # Stubbed AI-text detector. Replace body with detect_text_content(text)
+    # once Sapling key + caching are wired back in.
+    return {"label": "human", "score": 0, "source": "stub"}
 
 
 @app.post("/text")
 async def extract_text(req: TextRequest):
     return {"text": req.text}
 
+
+@app.post("/detect/all-text")
+async def detect_all_text(req: TextRequest):
+    hate, misinfo, ai = await asyncio.gather(
+        detect_hate_speech(req.text),
+        detect_misinfo(req.text),
+        _detect_ai_text(req.text),
+    )
+    return {
+        "hateSpeechLabel": hate.get("label"),
+        "hateSpeechScore": hate.get("score", 0),
+        "misinfoLabel": misinfo.get("label"),
+        "misinfoScore": misinfo.get("score", 0),
+        "aiTextLabel": ai.get("label"),
+        "aiTextScore": ai.get("score", 0),
+    }
 
 @app.post("/analyze")
 async def analyze(req: TextRequest):
@@ -86,17 +107,7 @@ async def detect_image(req: ImageRequest):
 
 @app.post("/detect/text")
 async def detect_text(req: TextRequest):
-    print("HERE!")
-    key = req.text[:100] # use first 100 chars as cache key
-    cached = get_cached(key)
-    if cached:
-        return cached
-    try:
-        result = await detect_text_content(req.text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
-    set_cached(key, result)
-    return result
+    return await _detect_ai_text(req.text)
 
 @app.get("/health")
 async def health():

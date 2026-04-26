@@ -3,11 +3,9 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
-SAPLING_KEY = os.getenv("SAPLING_KEY")
 SAPLING_URL = "https://api.sapling.ai/api/v1/aidetect"
 
-MIN_WORDS = 20
-MIN_CHARS = 100
+MIN_CHARS = 80
 
 
 class TextValidationError(Exception):
@@ -17,6 +15,14 @@ class UnexpectedResponse(Exception):
     pass
 
 
+def score_to_label(score: int) -> str:
+    if score >= 80:
+        return "ai"
+    elif score <= 30:
+        return "human"
+    else:
+        return "mixed"
+
 def validate_text(text: str) -> None:
     if not text or not text.strip():
         raise TextValidationError("Text is empty")
@@ -24,22 +30,13 @@ def validate_text(text: str) -> None:
     if len(text.strip()) < MIN_CHARS:
         raise TextValidationError(f"Text too short - minimum {MIN_CHARS} characters")
 
-    word_count = len(text.split())
-
-    if word_count < MIN_WORDS:
-        raise TextValidationError(f"Text too short - minimum {MIN_WORDS} words")
-
     if len(set(text.strip())) < 5:
         raise TextValidationError("Text doesn't look like real content")
 
 
 async def detect_text_content(text: str) -> dict:
-    print("Backend got: ", text)
-    return {
-        "score" : 99,
-        "source" : "sapling"
-    }
-    
+    SAPLING_KEY = os.getenv("SAPLING_KEY")
+
     validate_text(text) #throw before hitting API if invalid
     if not SAPLING_KEY:
         raise ValueError("SAPLING_KEY not found in .env")
@@ -65,5 +62,6 @@ async def detect_text_content(text: str) -> dict:
 
         return {
             "score" : score,
-            "source" : "sapling"
+            "source" : "sapling",
+            "label" : score_to_label(score)
         }

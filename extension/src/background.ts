@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: 'No text provided' });
         return true;
       }
-      fetch('http://localhost:8000/detect/text', {
+      fetch('http://localhost:8000/detect/all-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: message.text })

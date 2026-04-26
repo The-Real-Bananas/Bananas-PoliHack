@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const propagandaPower = document.getElementById('propagandaPower') as HTMLButtonElement;
   const propagandaGroup = document.getElementById('propagandaToggleGroup') as HTMLDivElement;
 
+  const hateSpeechPower = document.getElementById('hateSpeechPower') as HTMLButtonElement;
+  const hateSpeechGroup = document.getElementById('hateSpeechToggleGroup') as HTMLDivElement;
+
   let displaySettings: DisplaySettings = DEFAULT_SETTINGS;
 
   chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (response) => {
@@ -48,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setPhotoFilter(displaySettings.photoFilterActive);
       setTextFilter(displaySettings.textFilterActive);
       setPropaganda(displaySettings.propagandaActive);
+      setHateSpeech(displaySettings.hateSpeechActive);
 
     } else {
       document.querySelector('.footer')?.classList.add('status-paused');
@@ -57,11 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
       setPhotoFilter(false);
       setTextFilter(false);
       setPropaganda(false);
+      setHateSpeech(false);
 
       // 2. Disable Section Power buttons so they can't be toggled while Global is OFF
       photoFilterPower.setAttribute('disabled', 'true');
       textFilterPower.setAttribute('disabled', 'true');
       propagandaPower.setAttribute('disabled', 'true');
+      hateSpeechPower.setAttribute('disabled', 'true');
     }
   }
 
@@ -116,6 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function setHateSpeech(active: boolean) {
+    displaySettings.hateSpeechActive = active;
+    hateSpeechPower.setAttribute('data-active', String(active));
+    hateSpeechPower.querySelector('.power-label')!.textContent = active ? 'ON' : 'OFF';
+
+    // Lock/Unlock the Hate Speech buttons based on BOTH section and global state
+    if (active && displaySettings.globalActive) {
+      hateSpeechGroup.classList.remove('disabled');
+      hateSpeechGroup.querySelectorAll('button.toggle').forEach(btn => btn.removeAttribute('disabled'));
+    } else {
+      hateSpeechGroup.classList.add('disabled');
+      hateSpeechGroup.querySelectorAll('button.toggle').forEach(btn => {
+        btn.setAttribute('disabled', 'true');
+      });
+    }
+  }
+
   function activateToggle(group: HTMLDivElement, clicked: HTMLButtonElement) {
     group.querySelectorAll('button.toggle').forEach(b => b.classList.remove('active'));
     clicked.classList.add('active');
@@ -126,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setPhotoFilter(displaySettings.photoFilterActive);
     setTextFilter(displaySettings.textFilterActive);
     setPropaganda(displaySettings.propagandaActive);
-    
+    setHateSpeech(displaySettings.hateSpeechActive);
     switch (displaySettings.photoDisplayMode) {
       case 'blur':
         activateToggle(photoFilterGroup, document.getElementById('photoFilterBlurButton') as HTMLButtonElement);
@@ -154,6 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'hide':
         activateToggle(textFilterGroup, document.getElementById('textFilterHideButton') as HTMLButtonElement);
+        break;
+    }
+    
+    switch (displaySettings.hateSpeechDisplayMode) {
+      case 'flag':
+        activateToggle(hateSpeechGroup, document.getElementById('hateSpeechFlagButton') as HTMLButtonElement);
+        break;
+      case 'hide':
+        activateToggle(hateSpeechGroup, document.getElementById('hateSpeechHideButton') as HTMLButtonElement);
         break;
     }
   }
@@ -204,5 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     activateToggle(textFilterGroup, btn);
     sendToContent({ type: 'SET_TEXT_FILTER_MODE', mode: btn.dataset.mode }); // 'flag' | 'hide'
-  })
+  });
+
+  hateSpeechPower.addEventListener('click', () => {
+    if (!displaySettings.globalActive) return;
+    setHateSpeech(!displaySettings.hateSpeechActive);
+    sendToContent({ type: 'SET_HATE_SPEECH', enabled: displaySettings.hateSpeechActive });
+  });
+
+  hateSpeechGroup.addEventListener('click', (e: Event) => {
+    const btn = (e.target as HTMLElement).closest('button.toggle') as HTMLButtonElement | null;
+    if (!btn || btn.disabled) return;
+
+    activateToggle(hateSpeechGroup, btn);
+    sendToContent({ type: 'SET_HATE_SPEECH_MODE', mode: btn.dataset.mode }); // 'flag' | 'hide'
+  });
 });
