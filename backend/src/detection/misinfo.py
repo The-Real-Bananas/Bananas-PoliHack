@@ -1,8 +1,5 @@
-from transformers import pipeline as hf_pipeline
+from functools import lru_cache
 
-# ==========================================
-# 1. CONSTANTS & LISTS
-# ==========================================
 INTENT_LABELS = ["personal message", "opinion", "news or factual claim"]
 
 MISINFO_PATTERNS = [
@@ -21,40 +18,47 @@ EXTREME_CLAIM_PATTERNS = [
     "just died", "was just killed", "just exploded"
 ]
 
-# ==========================================
-# 2. MODELS INITIALIZATION
-# ==========================================
-intent_classifier = hf_pipeline(
-    "zero-shot-classification",
-    model="facebook/bart-large-mnli"
-)
 
-propaganda_detector = hf_pipeline(
-    "text-classification",
-    model="IDA-SERICS/PropagandaDetection"
-)
-
-sentiment_classifier = hf_pipeline(
-    "sentiment-analysis",
-    model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-)
+def _hf_pipeline():
+    from transformers import pipeline as hf_pipeline
+    return hf_pipeline
 
 
-# ==========================================
-# 3. HELPER FUNCTIONS
-# ==========================================
+@lru_cache(maxsize=1)
+def _intent_classifier():
+    return _hf_pipeline()("zero-shot-classification", model="facebook/bart-large-mnli")
+
+
+@lru_cache(maxsize=1)
+def _propaganda_detector():
+    return _hf_pipeline()("text-classification", model="IDA-SERICS/PropagandaDetection")
+
+
+@lru_cache(maxsize=1)
+def _sentiment_classifier():
+    return _hf_pipeline()("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
+
+
 def has_misinfo_patterns(text: str) -> bool:
     return any(pattern in text.lower() for pattern in MISINFO_PATTERNS)
 
 def has_extreme_claims(text: str) -> bool:
     return any(pattern in text.lower() for pattern in EXTREME_CLAIM_PATTERNS)
 
-# ==========================================
-# 4. MAIN PIPELINE LOGIC
-# ==========================================
-async def detect_misinfo(text: str) -> dict:
 
-    # PRE-CHECK 1 — too short
+def _unavailable(label: str, err: Exception) -> dict:
+    return {
+        "flagged": False,
+        "label": label,
+        "score": 0,
+        "skipped": True,
+        "reason": "Model unavailable",
+        "source": "transformers-unavailable",
+        "error": str(err),
+    }
+
+
+async def detect_misinfo(text: str) -> dict:
     if len(text.strip()) < 20:
         return {
             "flagged": False,
@@ -64,8 +68,13 @@ async def detect_misinfo(text: str) -> dict:
             "reason": "Text too short to analyze",
             "source": "validator"
         }
+
     # LAYER 1 — intent classification
-    intent = intent_classifier(text, candidate_labels=INTENT_LABELS)
+    try:
+        intent = _intent_classifier()(text, candidate_labels=INTENT_LABELS)
+    except Exception as e:
+        return _unavailable("intent-unavailable", e)
+
     top_label = intent["labels"][0]
     top_score = intent["scores"][0]
 
@@ -89,7 +98,6 @@ async def detect_misinfo(text: str) -> dict:
             "source": "bart-mnli"
         }
 
-    # LAYER 2 — conspiracy keyword check
     if has_misinfo_patterns(text):
         return {
             "flagged": True,
@@ -99,7 +107,6 @@ async def detect_misinfo(text: str) -> dict:
             "source": "keyword-detector"
         }
 
-    # LAYER 3 — extreme unverified claims
     if has_extreme_claims(text):
         return {
             "flagged": True,
@@ -110,20 +117,20 @@ async def detect_misinfo(text: str) -> dict:
             "source": "keyword-detector"
         }
 
-        # LAYER 5 — emotionally manipulative framing
-        sentiment = sentiment_classifier(text[:512])[0]
-        if sentiment["label"] == "negative" and sentiment["score"] > 0.65:
-            return {
-                "flagged": True,
-                "label": "emotionally-manipulative",
-                "score": int(sentiment["score"] * 100),
-                "skipped": False,
-                "reason": "Extremely negative framing on factual claim",
-                "source": "twitter-roberta-sentiment"
-            }
+    # LAYER 5 — emotionally manipulative framing
+    sentiment = _sentiment_classifier()(text[:512])[0]
+    if sentiment["label"] == "negative" and sentiment["score"] > 0.65:
+        return {
+            "flagged": True,
+            "label": "emotionally-manipulative",
+            "score": int(sentiment["score"] * 100),
+            "skipped": False,
+            "reason": "Extremely negative framing on factual claim",
+            "source": "twitter-roberta-sentiment"
+        }
 
     # LAYER 4 — propaganda model
-    result = propaganda_detector(text[:512])[0]
+    result = _propaganda_detector()(text[:512])[0]
     is_propaganda = result["label"] == "PROPAGANDA"
     confidence = int(result["score"] * 100)
 
@@ -137,8 +144,6 @@ async def detect_misinfo(text: str) -> dict:
         }
 
 
-
-    # ALL CLEAR
     return {
         "flagged": False,
         "label": "credible",

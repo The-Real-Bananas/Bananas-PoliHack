@@ -1,5 +1,5 @@
-from transformers import pipeline as hf_pipeline
 import re
+from functools import lru_cache
 
 TEXT_LENGTH_LIMIT = 25
 CUSS_THRESHOLD = 3
@@ -19,11 +19,14 @@ HATE_KEYWORDS = {
 }
 
 
+@lru_cache(maxsize=1)
+def _get_classifier():
+    from transformers import pipeline as hf_pipeline
+    return hf_pipeline(
+        "text-classification",
+        model="cardiffnlp/twitter-roberta-base-hate",
+    )
 
-hate_classifier = hf_pipeline(
-    "text-classification",
-    model="cardiffnlp/twitter-roberta-base-hate"
-)
 
 def _tokenize(text: str) -> list[str]:
     return re.findall(r"\b\w+\b", text.lower())
@@ -64,7 +67,18 @@ async def detect_hate_speech(text: str) -> dict:
             "source": "cuss-detector"
         }
 
-    result = hate_classifier(text[:512])[0]
+    try:
+        classifier = _get_classifier()
+        result = classifier(text[:512])[0]
+    except Exception as e:
+        return {
+            "flagged": False,
+            "label": "unavailable",
+            "score": 0,
+            "source": "twitter-roberta-hate",
+            "error": str(e),
+        }
+
     is_hate = result["label"].upper() == "HATE"
 
     return {
