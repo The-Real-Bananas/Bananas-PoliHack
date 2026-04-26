@@ -167,6 +167,7 @@ export class ContentProcessor {
     element.style.backgroundColor = `${color}33`;
     element.style.borderLeft = `3px solid ${color}`;
     element.style.borderRadius = '2px';
+    element.style.position = 'relative' //needed for absolute child
 
     const tooltip = document.createElement('div');
     tooltip.className = 'ai-detector-text-tooltip';
