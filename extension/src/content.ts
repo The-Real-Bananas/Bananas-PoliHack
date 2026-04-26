@@ -1,5 +1,5 @@
-import type { DetectionResult, DisplaySettings } from './types';
-import { DEFAULT_SETTINGS } from './types';
+import type { DisplaySettings, TextDetectionResult } from './types';
+import { DEFAULT_SETTINGS, MISINFO_FLAG_LABELS } from './types';
 import { scanImages, scanTexts } from './api';
 
 export class ContentProcessor {
@@ -13,8 +13,18 @@ export class ContentProcessor {
     'www.facebook.com': 'div[aria-posinset]',
   };
 
+  // Selectors that should resolve to the *text body* of a post, not the whole
+  // post container (which would also pull in reactions, button labels, etc.).
+  TEXT_SELECTORS: Record<string, string> = {
+    'twitter.com': 'article[data-testid="tweet"] [data-testid="tweetText"]',
+    'x.com': 'article[data-testid="tweet"] [data-testid="tweetText"]',
+    'www.reddit.com': 'shreddit-post [slot="text-body"]',
+    'www.linkedin.com': '[role="listitem"] .feed-shared-update-v2__description, [role="listitem"] .update-components-text',
+    'www.facebook.com': 'div[aria-posinset] div[data-ad-rendering-role="story_message"], div[aria-posinset] div[dir="auto"]',
+  };
+
   imageMap: Map<HTMLImageElement, number> = new Map();
-  textMap: Map<HTMLElement, number> = new Map();
+  textMap: Map<HTMLElement, TextDetectionResult> = new Map();
   observer: MutationObserver;
   displaySettings: DisplaySettings;
 
@@ -40,7 +50,25 @@ export class ContentProcessor {
       }, 1000);
     });
 
-    this.observer.observe(document.body, { childList: true, subtree: true });
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'data-src', 'data-original', 'data-lazy-src', 'data-url'],
+    });
+  }
+
+  pendingImageLoads: WeakSet<HTMLImageElement> = new WeakSet();
+
+  watchImageLoad(image: HTMLImageElement) {
+    if (this.pendingImageLoads.has(image)) return;
+    this.pendingImageLoads.add(image);
+    const onLoad = () => {
+      image.removeEventListener('load', onLoad);
+      this.pendingImageLoads.delete(image);
+      this.processImages();
+    };
+    image.addEventListener('load', onLoad, { once: true });
   }
 
   scoreToColor(score: number): string {
@@ -135,30 +163,102 @@ export class ContentProcessor {
     element.style.display = 'none';
   }
 
-  textFlag(element: HTMLElement, score: number) {
-    const color = this.scoreToColor(score);
+  textFlag(element: HTMLElement, color: string, title: string, score: number) {
     element.style.backgroundColor = `${color}33`;
     element.style.borderLeft = `3px solid ${color}`;
     element.style.borderRadius = '2px';
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'ai-detector-text-tooltip';
+    tooltip.style.cssText = `
+      position:fixed;
+      background:${color};color:white;
+      padding:6px 10px;border-radius:6px;
+      font-size:12px;font-family:sans-serif;line-height:1.4;
+      white-space:nowrap;z-index:99999;
+      pointer-events:none;opacity:0;
+      transition:opacity 0.15s ease;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    `;
+    tooltip.innerHTML = `
+      <div style="font-weight:bold;">${title}</div>
+      <div>Confidence: ${score}%</div>
+    `;
+    document.body.appendChild(tooltip);
+
+    const onEnter = () => {
+      const rect = element.getBoundingClientRect();
+      tooltip.style.top = `${rect.top}px`;
+      tooltip.style.left = `${rect.right + 8}px`;
+      tooltip.style.opacity = '1';
+    };
+    const onLeave = () => {
+      tooltip.style.opacity = '0';
+    };
+    element.addEventListener('mouseenter', onEnter);
+    element.addEventListener('mouseleave', onLeave);
+
+    (element as any).__aiDetectorTooltip = { tooltip, onEnter, onLeave };
   }
 
-  applyTextDisplaySettings(element: HTMLElement, score: number) {
-    if (this.displaySettings.propagandaActive && this.displaySettings.propagandaDisplayMode === 'hide'
-      || this.displaySettings.hateSpeechActive && this.displaySettings.hateSpeechDisplayMode === 'hide'
-      || this.displaySettings.textFilterActive && this.displaySettings.textDisplayMode === 'hide'
-    ) {
-      if (score >= this.THRESHOLD_RED) {
-        this.textHide(element);
-      }
+  clearTextFlagTooltip(element: HTMLElement) {
+    const handle = (element as any).__aiDetectorTooltip;
+    if (!handle) return;
+    element.removeEventListener('mouseenter', handle.onEnter);
+    element.removeEventListener('mouseleave', handle.onLeave);
+    handle.tooltip.remove();
+    delete (element as any).__aiDetectorTooltip;
+  }
+
+  applyTextDisplaySettings(element: HTMLElement, result: TextDetectionResult) {
+    const s = this.displaySettings;
+    if (!s.globalActive) return;
+
+    type Trigger = { mode: 'flag' | 'hide'; score: number; title: string };
+    const triggers: Trigger[] = [];
+
+    if (s.hateSpeechActive && result.hateSpeechLabel === 'hate-speech') {
+      triggers.push({
+        mode: s.hateSpeechDisplayMode,
+        score: result.hateSpeechScore,
+        title: 'Hate speech',
+      });
+    }
+    if (s.propagandaActive && MISINFO_FLAG_LABELS.includes(result.misinfoLabel)) {
+      triggers.push({
+        mode: s.propagandaDisplayMode,
+        score: result.misinfoScore,
+        title: this.misinfoTitle(result.misinfoLabel),
+      });
+    }
+    if (s.textFilterActive && (result.aiTextLabel === 'ai' || result.aiTextLabel === 'mixed')) {
+      triggers.push({
+        mode: s.textDisplayMode,
+        score: result.aiTextScore,
+        title: result.aiTextLabel === 'ai' ? 'AI-generated text' : 'Mixed AI/human text',
+      });
     }
 
-    if (this.displaySettings.propagandaActive && this.displaySettings.propagandaDisplayMode === 'flag'
-      || this.displaySettings.hateSpeechActive && this.displaySettings.hateSpeechDisplayMode === 'flag'
-      || this.displaySettings.textFilterActive && this.displaySettings.textDisplayMode === 'flag'
-    ) {
-      if (score >= this.THRESHOLD_YELLOW) {
-        this.textFlag(element, score);
-      }
+    if (triggers.length === 0) return;
+
+    if (triggers.some(t => t.mode === 'hide')) {
+      this.textHide(element);
+      return;
+    }
+
+    // Pick the trigger with the highest score, color by severity threshold.
+    const top = triggers.reduce((a, b) => (b.score > a.score ? b : a));
+    const color = top.score >= this.THRESHOLD_RED ? '#ef4444' : '#f59e0b';
+    this.textFlag(element, color, top.title, top.score);
+  }
+
+  misinfoTitle(label: TextDetectionResult['misinfoLabel']): string {
+    switch (label) {
+      case 'misinformation': return 'Misinformation';
+      case 'propaganda': return 'Propaganda';
+      case 'unverified-claim': return 'Unverified claim';
+      case 'emotionally-manipulative': return 'Emotionally manipulative';
+      default: return 'Flagged content';
     }
   }
 
@@ -194,6 +294,9 @@ export class ContentProcessor {
     element.style.color = '';
     element.style.padding = '';
     element.style.borderRadius = '';
+    element.style.borderLeft = '';
+    element.style.display = '';
+    this.clearTextFlagTooltip(element);
   }
 
   async processImages() {
@@ -201,15 +304,20 @@ export class ContentProcessor {
     const newImages = new Array<HTMLImageElement>();
 
     for (const image of images) {
+      if (this.imageMap.has(image)) continue;
+
+      if (!image.complete || image.naturalWidth === 0) {
+        this.watchImageLoad(image);
+        continue;
+      }
+
       const rect = image.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
 
       const style = getComputedStyle(image);
       if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
 
-      if (!this.imageMap.has(image) ) {
-        newImages.push(image);
-      }
+      newImages.push(image);
     }
 
     const results = await scanImages(newImages);
@@ -224,14 +332,20 @@ export class ContentProcessor {
   }
 
   async processText() {
-    const elements = Array.from(document.querySelectorAll<HTMLElement>('p, article, [role="article"]'));
-    const newElements = new Array<HTMLElement>();
+    const selector = this.TEXT_SELECTORS[window.location.hostname] ?? 'p, article, [role="article"]';
+    const elements = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    const candidates: HTMLElement[] = [];
 
+    // Drop descendants whose ancestor is already a candidate, so a parent
+    // text div and its inner text div don't both get scanned.
     for (const el of elements) {
-      if (!this.textMap.has(el) && el.innerText.trim().length >= 25) {
-        newElements.push(el);
-      }
+      if (this.textMap.has(el)) continue;
+      if (el.innerText.trim().length < 25) continue;
+      if (candidates.some(c => c.contains(el))) continue;
+      candidates.push(el);
     }
+
+    const newElements = candidates;
 
     console.log('Found', newElements.length, 'new text elements');
 
@@ -239,9 +353,10 @@ export class ContentProcessor {
 
     const results = await scanTexts(newElements);
     results.forEach((result, el) => {
-      console.log('Scanning text:', el.innerText);
-      this.textMap.set(el, result.score);
-      this.applyTextDisplaySettings(el, result.score);
+      console.log("Sent text:", el);
+      this.textMap.set(el, result);
+      this.applyTextDisplaySettings(el, result);
+      console.log(result.misinfoLabel, result.hateSpeechLabel, result.aiTextLabel);
     });
   }
 
@@ -255,11 +370,11 @@ export class ContentProcessor {
   }
 
   reprocessText() {
-    this.textMap.forEach((score, el) => {
+    this.textMap.forEach((result, el) => {
       this.resetTextDisplaySettings(el);
 
       if (this.displaySettings.globalActive) {
-        this.applyTextDisplaySettings(el, score);
+        this.applyTextDisplaySettings(el, result);
       }
     });
   }

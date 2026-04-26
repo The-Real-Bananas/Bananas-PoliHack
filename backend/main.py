@@ -33,13 +33,18 @@ class ImageRequest(BaseModel):
 
 class TextRequest(BaseModel):
     text: str
+
 class MisinfoRequest(BaseModel):
     text: str
+
 class HatefulRequest(BaseModel):
     text: str
 
-class TextRequest(BaseModel):
-    text: str
+
+async def _detect_ai_text(text: str) -> dict:
+    # Stubbed AI-text detector. Replace body with detect_text_content(text)
+    # once Sapling key + caching are wired back in.
+    return {"label": "human", "score": 0, "source": "stub"}
 
 
 @app.post("/text")
@@ -49,17 +54,18 @@ async def extract_text(req: TextRequest):
 
 @app.post("/detect/all-text")
 async def detect_all_text(req: TextRequest):
-    print(req.text)
-    
-    hate, misinfo, is_ai = await asyncio.gather(
+    hate, misinfo, ai = await asyncio.gather(
         detect_hate_speech(req.text),
         detect_misinfo(req.text),
-        detect_text(req.text),
+        _detect_ai_text(req.text),
     )
     return {
-        "hate": hate["label"],
-        "misinfo": misinfo["label"],
-        "is_ai": is_ai["label"],
+        "hateSpeechLabel": hate.get("label"),
+        "hateSpeechScore": hate.get("score", 0),
+        "misinfoLabel": misinfo.get("label"),
+        "misinfoScore": misinfo.get("score", 0),
+        "aiTextLabel": ai.get("label"),
+        "aiTextScore": ai.get("score", 0),
     }
 
 @app.post("/analyze")
@@ -101,17 +107,7 @@ async def detect_image(req: ImageRequest):
 
 @app.post("/detect/text")
 async def detect_text(req: TextRequest):
-    return { "label": "human" }
-    key = req.text[:100] # use first 100 chars as cache key
-    cached = get_cached(key)
-    if cached:
-        return cached
-    try:
-        result = await detect_text_content(req.text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
-    set_cached(key, result)
-    return result
+    return await _detect_ai_text(req.text)
 
 @app.get("/health")
 async def health():

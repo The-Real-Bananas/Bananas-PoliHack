@@ -52,21 +52,30 @@ export async function scanTexts(texts: HTMLElement[]): Promise<Map<HTMLElement, 
         const textTrim = text.innerText.trim();
         if (!textTrim) continue;
 
+        console.log('[AI Detector] Sending text (%d chars):', textTrim.length, textTrim.slice(0, 80));
+
         await Promise.race([
             new Promise<void>((resolve) => {
                 chrome.runtime.sendMessage(
                     { type: 'DETECT_TEXT', text: textTrim },
                     (response) => {
-                        if (response?.success) {
+                        if (chrome.runtime.lastError) {
+                            console.warn('[AI Detector] sendMessage error:', chrome.runtime.lastError.message);
+                        } else if (response?.success) {
+                            console.log('[AI Detector] Text result:', response.data);
                             results.set(text, response.data);
                         } else {
-                            console.warn('[AI Detector] Detection failed for:', textTrim, response?.error); 
+                            console.warn('[AI Detector] Detection failed:', response?.error ?? 'no response');
                         }
                         resolve();
                     }
                 );
             }),
-            new Promise<void>((resolve) => setTimeout(resolve, 5000)) // 5s timeout
+            // 30s — backend runs three HF pipelines and the first request also loads weights
+            new Promise<void>((resolve) => setTimeout(() => {
+                console.warn('[AI Detector] Text detection timed out');
+                resolve();
+            }, 30000)),
         ]);
     }
     return results;

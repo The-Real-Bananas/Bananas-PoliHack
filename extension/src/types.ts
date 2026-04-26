@@ -46,6 +46,13 @@ export type AITextLabel = 'ai' | 'human' | 'mixed';
 
 export interface TextDetectionResult {
   misinfoLabel: MisinfoLabel;
+  misinfoScore: number;
   hateSpeechLabel: HateSpeechLabel;
+  hateSpeechScore: number;
   aiTextLabel: AITextLabel;
+  aiTextScore: number;
 }
+
+export const MISINFO_FLAG_LABELS: ReadonlyArray<MisinfoLabel> = [
+  'misinformation', 'propaganda', 'unverified-claim', 'emotionally-manipulative',
+];
